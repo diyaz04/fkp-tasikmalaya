@@ -456,7 +456,7 @@ export default function PKDashboard() {
             <form onSubmit={handleUpdatePKProfil} className="bg-white border border-slate-200/50 rounded-2xl p-6 md:p-8 shadow space-y-6">
               <h3 className="text-sm font-extrabold text-slate-800 uppercase border-b border-slate-100 pb-3">Profil Deskripsi & Kepemimpinan Kecamatan</h3>
               
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                 <div className="space-y-1.5">
                   <label className="text-[11px] font-extrabold text-slate-500 uppercase">Nama Lengkap Ketua PK</label>
                   <input
@@ -475,6 +475,17 @@ export default function PKDashboard() {
                     value={pk.email || ''}
                     className="w-full text-xs p-2.5 border border-slate-200 bg-slate-100 rounded-lg text-slate-400 font-semibold cursor-not-allowed"
                     disabled
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-extrabold text-slate-500 uppercase">Kata Sandi Akses Baru</label>
+                  <input
+                    type="text"
+                    value={pk.password || ''}
+                    onChange={(e) => setPk({ ...pk, password: e.target.value })}
+                    className="w-full text-xs p-2.5 border border-slate-200 bg-slate-50 rounded-lg text-slate-700 font-semibold text-rose-600 focus:text-slate-800"
+                    placeholder="Sandi akses...."
                   />
                 </div>
               </div>

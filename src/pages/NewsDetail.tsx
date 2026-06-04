@@ -16,20 +16,21 @@ export default function NewsDetail() {
   const [loading, setLoading] = useState(true);
   const [recentNews, setRecentNews] = useState<Berita[]>([]);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<'sleek' | 'neon' | 'editorial' | 'retro'>('sleek');
   const [flyerUrl, setFlyerUrl] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
   const [copied, setCopied] = useState(false);
 
   const shareUrl = window.location.href;
 
-  const handleGenerateFlyer = async () => {
+  const handleGenerateFlyer = async (template = selectedTemplate) => {
     if (!berita) return;
     setGenerating(true);
     setFlyerUrl(null);
 
     const canvas = document.createElement('canvas');
     canvas.width = 600;
-    canvas.height = 840;
+    canvas.height = 750;
     const ctx = canvas.getContext('2d');
     if (!ctx) {
       setGenerating(false);
@@ -47,7 +48,11 @@ export default function NewsDetail() {
     };
 
     try {
-      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&color=0f172a&bgcolor=ffffff&data=${encodeURIComponent(shareUrl)}`;
+      // Dynamic QR code API colors according to template
+      let qrColor = '0f172a';
+      if (template === 'neon') qrColor = '000000'; // scan contrast inside physical white QR block
+      
+      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&color=${qrColor}&bgcolor=ffffff&data=${encodeURIComponent(shareUrl)}`;
       const logoUrl = 'https://lh3.googleusercontent.com/d/1mJoucoBL-xS9gWnQYaaHcJ3hsumyG7Qb';
       
       const [newsImg, qrImg, logoImg] = await Promise.all([
@@ -56,65 +61,6 @@ export default function NewsDetail() {
         loadImage(logoUrl).catch(() => null)
       ]);
 
-      // 1. Sleek Off-White/Light Background
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, 600, 840);
-
-      // Draw subtle light gradient glow on background
-      const bgGrad = ctx.createRadialGradient(300, 300, 100, 300, 300, 500);
-      bgGrad.addColorStop(0, '#f8fafc');
-      bgGrad.addColorStop(1, '#ffffff');
-      ctx.fillStyle = bgGrad;
-      ctx.fillRect(0, 0, 600, 840);
-
-      // Top Modern Signature Gradient Line (website dynamic brand colors)
-      const brandGrad = ctx.createLinearGradient(0, 0, 600, 0);
-      brandGrad.addColorStop(0, '#2563eb'); // Royal Blue
-      brandGrad.addColorStop(1, '#06b6d4'); // Vibrant Cyan
-      ctx.fillStyle = brandGrad;
-      ctx.fillRect(0, 0, 600, 8); // Thin top accent bar
-
-      // 2. Elegant clean geometric touch (extremely subtle background watermark shapes)
-      ctx.strokeStyle = 'rgba(6, 182, 212, 0.05)';
-      ctx.lineWidth = 20;
-      ctx.beginPath();
-      ctx.arc(600, 0, 200, 0, Math.PI * 2);
-      ctx.stroke();
-
-      ctx.strokeStyle = 'rgba(37, 99, 235, 0.03)';
-      ctx.lineWidth = 30;
-      ctx.beginPath();
-      ctx.arc(0, 840, 250, 0, Math.PI * 2);
-      ctx.stroke();
-
-      // 3. Header Logo inside flyer
-      if (logoImg) {
-        // Draw the uploaded landscape rectangular logo with dynamic width based on height
-        const logoHeight = 44;
-        const logoWidth = (logoImg.width / logoImg.height) * logoHeight;
-        ctx.drawImage(logoImg, 45, 30, logoWidth, logoHeight);
-      } else {
-        // Fallback Dot emblem
-        ctx.fillStyle = '#2563eb';
-        ctx.beginPath();
-        ctx.arc(60, 52, 6, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.fillStyle = '#0f172a';
-        ctx.font = 'bold 13px sans-serif';
-        ctx.fillText('FORUM KEWIRAUSAHAAN PEMUDA', 76, 56);
-
-        ctx.fillStyle = '#64748b';
-        ctx.font = 'bold 9px monospace';
-        ctx.fillText('KABUPATEN TASIKMALAYA • KABAR PINTAR DIGITAL', 76, 70);
-      }
-
-      // 4. White card with subtle shadow/border (glass-like overlay but clean white-slate base)
-      ctx.fillStyle = '#f8fafc';
-      ctx.strokeStyle = '#e2e8f0';
-      ctx.lineWidth = 1.5;
-
-      // Draw rounded rect helper
       const drawRoundedRect = (c: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) => {
         c.beginPath();
         c.moveTo(x + r, y);
@@ -125,64 +71,6 @@ export default function NewsDetail() {
         c.closePath();
       };
 
-      drawRoundedRect(ctx, 45, 105, 510, 530, 24);
-      ctx.fill();
-      ctx.stroke();
-
-      // 5. Category Badge inside Card (using core brand gradient)
-      ctx.fillStyle = brandGrad;
-      drawRoundedRect(ctx, 75, 125, 140, 26, 8);
-      ctx.fill();
-
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 10px sans-serif';
-      ctx.textBaseline = 'middle';
-      ctx.textAlign = 'center';
-      ctx.fillText(berita.sumber === 'dpd' ? 'DPD KABUPATEN' : 'PK KECAMATAN', 145, 138);
-      ctx.textAlign = 'left'; // reset text align
-      ctx.textBaseline = 'alphabetic'; // reset baseline
-
-      // 6. News Custom Image Area with Rounded Corners
-      ctx.save();
-      drawRoundedRect(ctx, 75, 165, 450, 200, 16);
-      ctx.clip(); // clip drawing area to get rounded corners to match glass panel look
-
-      if (newsImg) {
-        // Draw image in cover scale mode (fill-and-center)
-        const imgRatio = newsImg.width / newsImg.height;
-        const targetRatio = 450 / 200;
-        let sx = 0, sy = 0, sw = newsImg.width, sh = newsImg.height;
-        
-        if (imgRatio > targetRatio) {
-          // Image is wider, crop left/right
-          sw = newsImg.height * targetRatio;
-          sx = (newsImg.width - sw) / 2;
-        } else {
-          // Image is taller, crop top/bottom
-          sh = newsImg.width / targetRatio;
-          sy = (newsImg.height - sh) / 2;
-        }
-        ctx.drawImage(newsImg, sx, sy, sw, sh, 75, 165, 450, 200);
-      } else {
-        // Fallback gradient if image fails to load or no image uploaded
-        ctx.fillStyle = brandGrad;
-        ctx.fillRect(75, 165, 450, 200);
-
-        // draw background grid abstract geometric design
-        ctx.fillStyle = 'rgba(255,255,255,0.1)';
-        for (let i = 85; i < 515; i += 24) {
-          ctx.fillRect(i, 165, 1, 200);
-        }
-      }
-      ctx.restore(); // restore clip state to normal
-
-      // Draw beautiful subtle layout border around image container
-      ctx.strokeStyle = '#e2e8f0';
-      ctx.lineWidth = 1.5;
-      drawRoundedRect(ctx, 75, 165, 450, 200, 16);
-      ctx.stroke();
-
-      // Helper text wrapper
       const wrapText = (c: CanvasRenderingContext2D, text: string, x: number, y: number, maxWidth: number, lineHeight: number) => {
         const words = text.split(' ');
         let line = '';
@@ -203,69 +91,524 @@ export default function NewsDetail() {
         return currentY;
       };
 
-      // 7. News Title (below the image)
-      ctx.fillStyle = '#0f172a';
-      ctx.font = 'bold 18px sans-serif';
-      const endY = wrapText(ctx, berita.judul, 75, 395, 450, 24);
-
-      // 8. Contributor/Author & Date Info
-      ctx.fillStyle = '#475569';
-      ctx.font = 'bold 11px sans-serif';
-      ctx.fillText(`Kontributor: ${berita.penulis}`, 75, endY + 28);
-      
-      // Separator line with brand gradient touches
-      ctx.fillStyle = brandGrad;
-      ctx.fillRect(75, endY + 36, 120, 2);
-
-      ctx.fillStyle = '#64748b';
-      ctx.font = '10px sans-serif';
-      ctx.fillText(`Diterbitkan: ${new Date(berita.created_at).toLocaleDateString('id-ID', { dateStyle: 'full' })}`, 75, endY + 54);
-
-      // 9. Clean abstract/excerpt text
       const cleanContentExcerpt = (htmlText: string) => {
         const clean = htmlText.replace(/<\/?[^>]+(>|$)/g, "").trim();
-        return clean.length > 150 ? clean.substring(0, 150) + '...' : clean;
+        return clean.length > 130 ? clean.substring(0, 130) + '...' : clean;
       };
 
-      ctx.fillStyle = '#334155';
-      ctx.font = '12px sans-serif';
-      const excerptText = cleanContentExcerpt(berita.konten);
-      wrapText(ctx, excerptText, 75, endY + 80, 450, 18);
-
-      // 10. Footer layout with QR Code and URL info
-      ctx.fillStyle = '#ffffff';
-      ctx.strokeStyle = '#e2e8f0';
-      ctx.lineWidth = 1;
-      drawRoundedRect(ctx, 425, 680, 115, 115, 16);
-      ctx.fill();
-      ctx.stroke();
-
-      // Left info block in footer (aligned with QR block)
-      ctx.fillStyle = '#0f172a';
-      ctx.font = 'bold 11px sans-serif';
-      ctx.fillText('PINDAI QR-CODE UNTUK BACA ONLINE', 45, 715);
-
-      ctx.fillStyle = '#64748b';
-      ctx.font = '10px sans-serif';
-      ctx.fillText('Forum Kewirausahaan Pemuda', 45, 735);
-      ctx.fillText('Kabupaten Tasikmalaya', 45, 748);
-
-      ctx.fillStyle = '#0284c7'; // elegant slate-blue link color
-      ctx.font = 'bold 9px monospace';
-      const displayUrl = shareUrl.length > 52 ? shareUrl.substring(0, 49) + '...' : shareUrl;
-      ctx.fillText(displayUrl, 45, 770);
-
-      if (qrImg) {
-        ctx.drawImage(qrImg, 430, 685, 105, 105);
-      } else {
-        // Offline fallback for QR
-        ctx.fillStyle = '#0f172a';
-        ctx.fillRect(430, 685, 105, 105);
+      // ==========================================
+      // TEMPLATE: SLEEK (VIBRANT MODERN BLUE-CYAN)
+      // ==========================================
+      if (template === 'sleek') {
         ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 10px monospace';
+        ctx.fillRect(0, 0, 600, 750);
+
+        const bgGrad = ctx.createRadialGradient(300, 300, 100, 300, 300, 500);
+        bgGrad.addColorStop(0, '#f8fafc');
+        bgGrad.addColorStop(1, '#ffffff');
+        ctx.fillStyle = bgGrad;
+        ctx.fillRect(0, 0, 600, 750);
+
+        const brandGrad = ctx.createLinearGradient(0, 0, 600, 0);
+        brandGrad.addColorStop(0, '#2563eb');
+        brandGrad.addColorStop(1, '#06b6d4');
+        ctx.fillStyle = brandGrad;
+        ctx.fillRect(0, 0, 600, 8);
+
+        ctx.strokeStyle = 'rgba(6, 182, 212, 0.05)';
+        ctx.lineWidth = 20;
+        ctx.beginPath();
+        ctx.arc(600, 0, 200, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.strokeStyle = 'rgba(37, 99, 235, 0.03)';
+        ctx.lineWidth = 30;
+        ctx.beginPath();
+        ctx.arc(0, 750, 250, 0, Math.PI * 2);
+        ctx.stroke();
+
+        if (logoImg) {
+          const logoHeight = 44;
+          const logoWidth = (logoImg.width / logoImg.height) * logoHeight;
+          ctx.drawImage(logoImg, 45, 30, logoWidth, logoHeight);
+        } else {
+          ctx.fillStyle = '#2563eb';
+          ctx.beginPath();
+          ctx.arc(60, 52, 6, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.fillStyle = '#0f172a';
+          ctx.font = 'bold 13px sans-serif';
+          ctx.fillText('FORUM KEWIRAUSAHAAN PEMUDA', 76, 56);
+
+          ctx.fillStyle = '#64748b';
+          ctx.font = 'bold 9px monospace';
+          ctx.fillText('KABUPATEN TASIKMALAYA • KABAR PINTAR DIGITAL', 76, 70);
+        }
+
+        ctx.fillStyle = '#f8fafc';
+        ctx.strokeStyle = '#e2e8f0';
+        ctx.lineWidth = 1.5;
+        drawRoundedRect(ctx, 45, 100, 510, 485, 20);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = brandGrad;
+        drawRoundedRect(ctx, 75, 118, 140, 24, 8);
+        ctx.fill();
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 10px sans-serif';
+        ctx.textBaseline = 'middle';
         ctx.textAlign = 'center';
-        ctx.fillText('[ FKP KAB ]', 482, 740);
+        ctx.fillText(berita.sumber === 'dpd' ? 'DPD KABUPATEN' : 'PK KECAMATAN', 145, 130);
         ctx.textAlign = 'left';
+        ctx.textBaseline = 'alphabetic';
+
+        ctx.save();
+        drawRoundedRect(ctx, 75, 155, 450, 190, 16);
+        ctx.clip();
+
+        if (newsImg) {
+          const imgRatio = newsImg.width / newsImg.height;
+          const targetRatio = 450 / 190;
+          let sx = 0, sy = 0, sw = newsImg.width, sh = newsImg.height;
+          
+          if (imgRatio > targetRatio) {
+            sw = newsImg.height * targetRatio;
+            sx = (newsImg.width - sw) / 2;
+          } else {
+            sh = newsImg.width / targetRatio;
+            sy = (newsImg.height - sh) / 2;
+          }
+          ctx.drawImage(newsImg, sx, sy, sw, sh, 75, 155, 450, 190);
+        } else {
+          ctx.fillStyle = brandGrad;
+          ctx.fillRect(75, 155, 450, 190);
+        }
+        ctx.restore();
+
+        ctx.strokeStyle = '#e2e8f0';
+        ctx.lineWidth = 1.5;
+        drawRoundedRect(ctx, 75, 155, 450, 190, 16);
+        ctx.stroke();
+
+        ctx.fillStyle = '#0f172a';
+        ctx.font = 'bold 18px sans-serif';
+        const endY = wrapText(ctx, berita.judul, 75, 375, 450, 22);
+
+        ctx.fillStyle = '#475569';
+        ctx.font = 'bold 11px sans-serif';
+        ctx.fillText(`Kontributor: ${berita.penulis}`, 75, endY + 22);
+        
+        ctx.fillStyle = brandGrad;
+        ctx.fillRect(75, endY + 28, 120, 2);
+
+        ctx.fillStyle = '#64748b';
+        ctx.font = '10px sans-serif';
+        ctx.fillText(`Diterbitkan: ${new Date(berita.created_at).toLocaleDateString('id-ID', { dateStyle: 'full' })}`, 75, endY + 42);
+
+        ctx.fillStyle = '#334155';
+        ctx.font = '12px sans-serif';
+        const excerptText = cleanContentExcerpt(berita.konten);
+        wrapText(ctx, excerptText, 75, endY + 62, 450, 18);
+
+        ctx.fillStyle = '#ffffff';
+        ctx.strokeStyle = '#e2e8f0';
+        ctx.lineWidth = 1;
+        drawRoundedRect(ctx, 445, 605, 110, 110, 16);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = '#0f172a';
+        ctx.font = 'bold 11px sans-serif';
+        ctx.fillText('PINDAI QR-CODE UNTUK BACA ONLINE', 45, 630);
+
+        ctx.fillStyle = '#64748b';
+        ctx.font = '10px sans-serif';
+        ctx.fillText('Forum Kewirausahaan Pemuda', 45, 650);
+        ctx.fillText('Kabupaten Tasikmalaya', 45, 663);
+
+        ctx.fillStyle = '#0284c7';
+        ctx.font = 'bold 9px monospace';
+        const displayUrl = shareUrl.length > 52 ? shareUrl.substring(0, 49) + '...' : shareUrl;
+        ctx.fillText(displayUrl, 45, 685);
+
+        if (qrImg) {
+          ctx.drawImage(qrImg, 450, 610, 100, 100);
+        }
+      } 
+      
+      // ==========================================
+      // TEMPLATE: NEON (COSMIC DARK / FUTURISTIC CYBER)
+      // ==========================================
+      else if (template === 'neon') {
+        ctx.fillStyle = '#090d16';
+        ctx.fillRect(0, 0, 600, 750);
+
+        // Ambient cyber glows
+        const purpGlow = ctx.createRadialGradient(100, 650, 50, 100, 650, 320);
+        purpGlow.addColorStop(0, 'rgba(168, 85, 247, 0.22)');
+        purpGlow.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = purpGlow;
+        ctx.fillRect(0, 0, 600, 750);
+
+        const cyanGlow = ctx.createRadialGradient(500, 100, 50, 500, 100, 320);
+        cyanGlow.addColorStop(0, 'rgba(6, 182, 212, 0.22)');
+        cyanGlow.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = cyanGlow;
+        ctx.fillRect(0, 0, 600, 750);
+
+        const neonGrad = ctx.createLinearGradient(0, 0, 600, 0);
+        neonGrad.addColorStop(0, '#c084fc');
+        neonGrad.addColorStop(1, '#22d3ee');
+        ctx.fillStyle = neonGrad;
+        ctx.fillRect(0, 0, 600, 8);
+
+        // Geometric tech lines
+        ctx.strokeStyle = 'rgba(34, 211, 238, 0.05)';
+        ctx.lineWidth = 1;
+        for (let i = 0; i < 600; i += 50) {
+          ctx.beginPath();
+          ctx.moveTo(i, 0);
+          ctx.lineTo(i, 750);
+          ctx.stroke();
+        }
+
+        if (logoImg) {
+          ctx.save();
+          ctx.globalAlpha = 0.95;
+          const logoHeight = 44;
+          const logoWidth = (logoImg.width / logoImg.height) * logoHeight;
+          ctx.drawImage(logoImg, 45, 30, logoWidth, logoHeight);
+          ctx.restore();
+        } else {
+          ctx.fillStyle = '#22d3ee';
+          ctx.beginPath();
+          ctx.arc(60, 52, 6, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = '#ffffff';
+          ctx.font = 'bold 13px sans-serif';
+          ctx.fillText('FORUM KEWIRAUSAHAAN PEMUDA', 76, 56);
+        }
+
+        ctx.fillStyle = '#111827';
+        ctx.strokeStyle = '#1e293b';
+        ctx.lineWidth = 2;
+        drawRoundedRect(ctx, 45, 100, 510, 485, 20);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = '#c084fc';
+        drawRoundedRect(ctx, 75, 118, 150, 24, 8);
+        ctx.fill();
+
+        ctx.fillStyle = '#090d16';
+        ctx.font = 'bold 9px sans-serif';
+        ctx.textBaseline = 'middle';
+        ctx.textAlign = 'center';
+        ctx.fillText(berita.sumber === 'dpd' ? '⚡ DPD KABUPATEN' : '⚡ PK KECAMATAN', 150, 130);
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'alphabetic';
+
+        ctx.save();
+        drawRoundedRect(ctx, 75, 155, 450, 190, 16);
+        ctx.clip();
+
+        if (newsImg) {
+          const imgRatio = newsImg.width / newsImg.height;
+          const targetRatio = 450 / 190;
+          let sx = 0, sy = 0, sw = newsImg.width, sh = newsImg.height;
+          if (imgRatio > targetRatio) {
+            sw = newsImg.height * targetRatio;
+            sx = (newsImg.width - sw) / 2;
+          } else {
+            sh = newsImg.width / targetRatio;
+            sy = (newsImg.height - sh) / 2;
+          }
+          ctx.drawImage(newsImg, sx, sy, sw, sh, 75, 155, 450, 190);
+        } else {
+          ctx.fillStyle = '#1e1b4b';
+          ctx.fillRect(75, 155, 450, 190);
+        }
+        ctx.restore();
+
+        ctx.strokeStyle = '#22d3ee';
+        ctx.lineWidth = 1.5;
+        drawRoundedRect(ctx, 75, 155, 450, 190, 16);
+        ctx.stroke();
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 20px sans-serif';
+        const endY = wrapText(ctx, berita.judul, 75, 375, 450, 25);
+
+        ctx.fillStyle = '#c084fc';
+        ctx.font = 'bold 11px sans-serif';
+        ctx.fillText(`KONTRIBUTOR: ${berita.penulis.toUpperCase()}`, 75, endY + 22);
+        
+        ctx.fillStyle = '#22d3ee';
+        ctx.fillRect(75, endY + 28, 120, 2.5);
+
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = 'bold 10px monospace';
+        ctx.fillText(`RELEASE: ${new Date(berita.created_at).toLocaleDateString('id-ID', { dateStyle: 'medium' })}`, 75, endY + 42);
+
+        ctx.fillStyle = '#cbd5e1';
+        ctx.font = '12px sans-serif';
+        const excerptText = cleanContentExcerpt(berita.konten);
+        wrapText(ctx, excerptText, 75, endY + 62, 450, 18);
+
+        ctx.fillStyle = '#0f172a';
+        ctx.strokeStyle = '#22d3ee';
+        ctx.lineWidth = 2;
+        drawRoundedRect(ctx, 445, 605, 110, 110, 16);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = '#22d3ee';
+        ctx.font = 'bold 11px sans-serif';
+        ctx.fillText('PINDAI BARCODE UTK BACA ONLINE', 45, 630);
+
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = '10px sans-serif';
+        ctx.fillText('FORUM KEWIRAUSAHAAN PEMUDA', 45, 650);
+        ctx.fillText('KABUPATEN TASIKMALAYA', 45, 663);
+
+        ctx.fillStyle = '#c084fc';
+        ctx.font = 'bold 9px monospace';
+        const displayUrl = shareUrl.length > 52 ? shareUrl.substring(0, 49) + '...' : shareUrl;
+        ctx.fillText(displayUrl, 45, 685);
+
+        if (qrImg) {
+          ctx.drawImage(qrImg, 450, 610, 100, 100);
+        }
+      }
+
+      // ==========================================
+      // TEMPLATE: EDITORIAL (VINTAGE LUXURY JOURNAL)
+      // ==========================================
+      else if (template === 'editorial') {
+        ctx.fillStyle = '#faf7f2'; // Warm premium paper
+        ctx.fillRect(0, 0, 600, 750);
+
+        ctx.strokeStyle = 'rgba(139, 92, 26, 0.12)';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(25, 25, 550, 700);
+
+        ctx.fillStyle = '#1c1917';
+        ctx.font = 'bold 20px serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('FKP JOURNALISM', 300, 55);
+
+        ctx.fillStyle = '#78716c';
+        ctx.font = 'bold 9px sans-serif';
+        ctx.fillText('OPINI & DISKUSI WIRAUSAHA MUDA • TASIKMALAYA', 300, 72);
+        ctx.textAlign = 'left';
+
+        ctx.strokeStyle = '#1c1917';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(45, 85);
+        ctx.lineTo(555, 85);
+        ctx.stroke();
+
+        ctx.fillStyle = '#78716c';
+        ctx.font = 'bold 9px sans-serif';
+        ctx.fillText('RELEASED: ' + new Date(berita.created_at).toLocaleDateString('id-ID', { dateStyle: 'full' }).toUpperCase(), 45, 102);
+
+        ctx.textAlign = 'right';
+        ctx.fillText(berita.sumber === 'dpd' ? 'DPD KABUPATEN OFFICIAL' : 'PK KECAMATAN OFFICIAL', 555, 102);
+        ctx.textAlign = 'left';
+
+        ctx.save();
+        ctx.rect(45, 120, 510, 190);
+        ctx.clip();
+
+        if (newsImg) {
+          const imgRatio = newsImg.width / newsImg.height;
+          const targetRatio = 510 / 190;
+          let sx = 0, sy = 0, sw = newsImg.width, sh = newsImg.height;
+          if (imgRatio > targetRatio) {
+            sw = newsImg.height * targetRatio;
+            sx = (newsImg.width - sw) / 2;
+          } else {
+            sh = newsImg.width / targetRatio;
+            sy = (newsImg.height - sh) / 2;
+          }
+          ctx.drawImage(newsImg, sx, sy, sw, sh, 45, 120, 510, 190);
+        } else {
+          ctx.fillStyle = '#e7e5e4';
+          ctx.fillRect(45, 120, 510, 190);
+        }
+        ctx.restore();
+
+        ctx.strokeStyle = '#1c1917';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(45, 120, 510, 190);
+
+        ctx.fillStyle = '#1c1917';
+        ctx.font = 'bold 22px serif';
+        const endY = wrapText(ctx, berita.judul, 45, 345, 510, 26);
+
+        ctx.fillStyle = '#78716c';
+        ctx.font = 'italic 12px serif';
+        ctx.fillText(`Publikasi Redaksi: ${berita.penulis}`, 45, endY + 24);
+
+        ctx.strokeStyle = 'rgba(28,25,23,0.15)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(45, endY + 32);
+        ctx.lineTo(555, endY + 32);
+        ctx.stroke();
+
+        ctx.fillStyle = '#44403c';
+        ctx.font = '13px serif';
+        const excerptText = cleanContentExcerpt(berita.konten);
+        wrapText(ctx, excerptText, 45, endY + 52, 510, 18);
+
+        ctx.fillStyle = '#f5f2eb';
+        ctx.fillRect(445, 605, 110, 110);
+        ctx.strokeStyle = '#1c1917';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(445, 605, 110, 110);
+
+        ctx.fillStyle = '#1c1917';
+        ctx.font = 'bold 11px serif';
+        ctx.fillText('OFFICIAL DIGITAL JOURNAL', 45, 630);
+
+        ctx.fillStyle = '#78716c';
+        ctx.font = '10px serif';
+        ctx.fillText('Pindai kode QR disamping untuk menyambung rilis resmi', 45, 650);
+        ctx.fillText('Forum Kewirausahaan Pemuda Kabupaten Tasikmalaya.', 45, 663);
+
+        ctx.fillStyle = '#c2410c';
+        ctx.font = 'bold 9px monospace';
+        const displayUrl = shareUrl.length > 52 ? shareUrl.substring(0, 49) + '...' : shareUrl;
+        ctx.fillText(displayUrl, 45, 685);
+
+        if (qrImg) {
+          ctx.drawImage(qrImg, 450, 610, 100, 100);
+        }
+      }
+
+      // ==========================================
+      // TEMPLATE: RETRO BRUTALIST (VIBRANT POP ART)
+      // ==========================================
+      else if (template === 'retro') {
+        ctx.fillStyle = '#fbbf24'; // Bold sun yellow
+        ctx.fillRect(0, 0, 600, 750);
+
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = 3;
+        ctx.strokeRect(15, 15, 570, 720);
+
+        ctx.fillStyle = '#ec4899'; // Hot pink circle
+        ctx.beginPath();
+        ctx.arc(60, 48, 10, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = '#000000';
+        ctx.font = 'black 14px sans-serif';
+        ctx.fillText('★ KABAR FKP SENSASIONAL', 85, 52);
+
+        // shadow
+        ctx.fillStyle = '#000000';
+        drawRoundedRect(ctx, 45 + 6, 95 + 6, 510, 485, 12);
+        ctx.fill();
+
+        ctx.fillStyle = '#ffffff';
+        drawRoundedRect(ctx, 45, 95, 510, 485, 12);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = '#2563eb'; // Pop blue
+        drawRoundedRect(ctx, 75 - 4, 115, 160, 26, 0);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 10px sans-serif';
+        ctx.textBaseline = 'middle';
+        ctx.textAlign = 'center';
+        ctx.fillText(berita.sumber === 'dpd' ? '⚡ DPD KABUPATEN' : '⚡ PK KECAMATAN', 155, 128);
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'alphabetic';
+
+        ctx.save();
+        drawRoundedRect(ctx, 75, 155, 450, 180, 0);
+        ctx.clip();
+
+        if (newsImg) {
+          const imgRatio = newsImg.width / newsImg.height;
+          const targetRatio = 450 / 180;
+          let sx = 0, sy = 0, sw = newsImg.width, sh = newsImg.height;
+          if (imgRatio > targetRatio) {
+            sw = newsImg.height * targetRatio;
+            sx = (newsImg.width - sw) / 2;
+          } else {
+            sh = newsImg.width / targetRatio;
+            sy = (newsImg.height - sh) / 2;
+          }
+          ctx.drawImage(newsImg, sx, sy, sw, sh, 75, 155, 450, 180);
+        } else {
+          ctx.fillStyle = '#f97316';
+          ctx.fillRect(75, 155, 450, 180);
+        }
+        ctx.restore();
+
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = 3;
+        drawRoundedRect(ctx, 75, 155, 450, 180, 0);
+        ctx.stroke();
+
+        ctx.fillStyle = '#000000';
+        ctx.font = '900 20px sans-serif';
+        const endY = wrapText(ctx, berita.judul.toUpperCase(), 75, 365, 450, 22);
+
+        ctx.fillStyle = '#ec4899';
+        ctx.fillRect(75, endY + 12, 200, 24);
+        ctx.strokeRect(75, endY + 12, 200, 24);
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 11px sans-serif';
+        ctx.fillText(`KARYA: ${berita.penulis.toUpperCase()}`, 85, endY + 28);
+
+        ctx.fillStyle = '#000000';
+        ctx.font = 'bold 10px monospace';
+        ctx.fillText(`TANGGAL: ${new Date(berita.created_at).toLocaleDateString('id-ID', { dateStyle: 'short' })}`, 75, endY + 52);
+
+        ctx.fillStyle = '#111827';
+        ctx.font = 'bold 12px sans-serif';
+        const excerptText = cleanContentExcerpt(berita.konten);
+        wrapText(ctx, excerptText, 75, endY + 72, 450, 16);
+
+        ctx.fillStyle = '#000000';
+        drawRoundedRect(ctx, 445 + 6, 605 + 6, 110, 110, 0);
+        ctx.fill();
+
+        ctx.fillStyle = '#ffffff';
+        drawRoundedRect(ctx, 445, 605, 110, 110, 0);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = '#000000';
+        ctx.font = 'black 11px sans-serif';
+        ctx.fillText('PINDAI DISINI UNTUK BACA! ➔', 45, 630);
+
+        ctx.fillStyle = '#374151';
+        ctx.font = 'bold 10px sans-serif';
+        ctx.fillText('FKP Kabupaten Tasikmalaya', 45, 650);
+        ctx.fillText('Forum Kewirausahaan Pemuda', 45, 663);
+
+        ctx.fillStyle = '#2563eb';
+        ctx.font = 'bold 10px monospace';
+        const displayUrl = shareUrl.length > 52 ? shareUrl.substring(0, 49) + '...' : shareUrl;
+        ctx.fillText(displayUrl, 45, 685);
+
+        if (qrImg) {
+          ctx.drawImage(qrImg, 450, 610, 100, 100);
+        }
       }
 
       setFlyerUrl(canvas.toDataURL('image/png'));
@@ -275,6 +618,12 @@ export default function NewsDetail() {
       setGenerating(false);
     }
   };
+
+  useEffect(() => {
+    if (showShareModal && berita) {
+      handleGenerateFlyer(selectedTemplate);
+    }
+  }, [showShareModal, selectedTemplate, berita]);
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(shareUrl);
@@ -392,7 +741,6 @@ export default function NewsDetail() {
                   <button
                     onClick={() => {
                       setShowShareModal(true);
-                      handleGenerateFlyer();
                     }}
                     className="inline-flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white rounded-full text-xs font-extrabold shadow-md shadow-blue-500/10 hover:shadow-cyan-500/25 transition-all hover:scale-105 active:scale-95 cursor-pointer"
                   >
@@ -533,11 +881,82 @@ export default function NewsDetail() {
               {/* Share actions block */}
               <div className="md:col-span-7 space-y-5">
                 <div className="space-y-1.5 text-left">
-                  <h4 className="text-xs font-extrabold text-slate-500 uppercase tracking-wider">Detail Flyer & Kabar:</h4>
+                  <h4 className="text-xs font-extrabold text-slate-500 uppercase tracking-wider">Detail Flyer &amp; Kabar:</h4>
                   <p className="text-sm font-extrabold text-slate-800 leading-snug">{berita.judul}</p>
-                  <p className="text-xs text-slate-400 font-semibold line-clamp-3">
-                    Brosur digital ini dirancang dengan gradasi dinamis modern, memuat summary artikel resmi, metadata kontributor dari wilayah, serta QRCode yang langsung terintegrasi ke tautan URL aktif.
+                  <p className="text-xs text-slate-400 font-semibold line-clamp-2">
+                    Brosur digital ini dirancang dengan layout visual khusus yang memuat summary artikel resmi, metadata kontributor wilayah, serta QRCode terintegrasi.
                   </p>
+                </div>
+
+                <div className="h-[1px] bg-slate-100"></div>
+
+                {/* TEMPLATE PICKER */}
+                <div className="space-y-2.5 text-left">
+                  <label className="text-[10px] font-extrabold text-slate-400 tracking-wider uppercase block">
+                    🎨 PILIH STYLE / DESAIN FLYER KEKINIAN:
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedTemplate('sleek')}
+                      className={`p-3 rounded-2xl border text-xs font-bold transition-all text-left flex items-start gap-2.5 cursor-pointer hover:border-slate-300 ${
+                        selectedTemplate === 'sleek'
+                          ? 'bg-blue-50 border-blue-200 text-blue-700 shadow-sm'
+                          : 'bg-white border-slate-200 text-slate-700'
+                      }`}
+                    >
+                      <span className="text-lg">🔹</span>
+                      <div>
+                        <span className="block font-black text-xs">Sleek Gradient</span>
+                        <span className="block text-[10px] text-slate-400 font-semibold mt-0.5">Modern &amp; Profesional</span>
+                      </div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedTemplate('neon')}
+                      className={`p-3 rounded-2xl border text-xs font-bold transition-all text-left flex items-start gap-2.5 cursor-pointer hover:border-slate-300 ${
+                        selectedTemplate === 'neon'
+                          ? 'bg-purple-950/20 border-purple-500/30 text-purple-600 shadow-sm'
+                          : 'bg-white border-slate-200 text-slate-700'
+                      }`}
+                    >
+                      <span className="text-lg">🌌</span>
+                      <div>
+                        <span className="block font-black text-xs">Cosmic Neon</span>
+                        <span className="block text-[10px] text-slate-400 font-semibold mt-0.5">Cyberpunk Night Mood</span>
+                      </div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedTemplate('editorial')}
+                      className={`p-3 rounded-2xl border text-xs font-bold transition-all text-left flex items-start gap-2.5 cursor-pointer hover:border-slate-300 ${
+                        selectedTemplate === 'editorial'
+                          ? 'bg-amber-50 border-amber-200 text-amber-800 shadow-sm'
+                          : 'bg-white border-slate-200 text-slate-700'
+                      }`}
+                    >
+                      <span className="text-lg">📜</span>
+                      <div>
+                        <span className="block font-black text-xs">Premium Editorial</span>
+                        <span className="block text-[10px] text-slate-400 font-semibold mt-0.5">Vintage Magazine Grid</span>
+                      </div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedTemplate('retro')}
+                      className={`p-3 rounded-2xl border text-xs font-bold transition-all text-left flex items-start gap-2.5 cursor-pointer hover:border-slate-300 ${
+                        selectedTemplate === 'retro'
+                          ? 'bg-yellow-50 border-yellow-300 text-yellow-800 shadow-sm'
+                          : 'bg-white border-slate-200 text-slate-700'
+                      }`}
+                    >
+                      <span className="text-lg">⚡</span>
+                      <div>
+                        <span className="block font-black text-xs">Brutalist Retro</span>
+                        <span className="block text-[10px] text-slate-400 font-semibold mt-0.5">Bold Gen-Z POP Art</span>
+                      </div>
+                    </button>
+                  </div>
                 </div>
 
                 <div className="h-[1px] bg-slate-100"></div>

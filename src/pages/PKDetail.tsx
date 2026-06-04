@@ -148,28 +148,80 @@ export default function PKDetail() {
               Struktur Jajaran Pengurus Kecamatan
             </h3>
 
-            {!pk.pengurus || pk.pengurus.length === 0 ? (
+            {(!pk.pengurus || pk.pengurus.length === 0) && !pk.nama_sekretaris && !pk.nama_bendahara ? (
               <p className="text-xs text-slate-400 font-semibold text-center py-8">Belum ada struktur pengurus yang dimasukkan.</p>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-6">
-                {pk.pengurus.map((mgr, index) => (
-                  <div key={index} className="text-center space-y-2 border border-slate-50 p-3 rounded-2xl hover:bg-slate-50/55 duration-200">
-                    <div className="w-16 h-16 mx-auto rounded-full bg-slate-50 border border-slate-200 overflow-hidden">
+                {/* Explicit Sekretaris if defined */}
+                {pk.nama_sekretaris && (
+                  <div className="text-center space-y-2 border border-blue-50 bg-blue-50/20 p-3 rounded-2xl hover:bg-blue-50/40 duration-200">
+                    <div className="w-16 h-16 mx-auto rounded-full bg-slate-50 border border-slate-200 overflow-hidden shadow-sm">
                       <img
-                        src={mgr.foto_url || 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=400&q=80'}
-                        alt={mgr.nama}
+                        src={pk.foto_sekretaris_url || 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=400&q=80'}
+                        alt={pk.nama_sekretaris}
                         className="w-full h-full object-cover"
                         onError={(e) => {
-                          (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1507041957456-9c397ce39c97?auto=format&fit=crop&w=150&q=80';
+                          (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1549813069-f9dfe6190db2?auto=format&fit=crop&w=150&q=80';
                         }}
                       />
                     </div>
                     <div className="leading-normal">
-                      <h4 className="text-xs font-extrabold text-slate-800 truncate">{mgr.nama}</h4>
-                      <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider block mt-0.5">{mgr.jabatan}</span>
+                      <h4 className="text-xs font-extrabold text-slate-800 truncate">{pk.nama_sekretaris}</h4>
+                      <span className="text-[10px] text-blue-600 font-extrabold uppercase tracking-wider block mt-0.5">Sekretaris PK</span>
                     </div>
                   </div>
-                ))}
+                )}
+
+                {/* Explicit Bendahara if defined */}
+                {pk.nama_bendahara && (
+                  <div className="text-center space-y-2 border border-emerald-50 bg-emerald-50/20 p-3 rounded-2xl hover:bg-emerald-50/40 duration-200">
+                    <div className="w-16 h-16 mx-auto rounded-full bg-slate-50 border border-slate-200 overflow-hidden shadow-sm">
+                      <img
+                        src={pk.foto_bendahara_url || 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=400&q=80'}
+                        alt={pk.nama_bendahara}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1549813069-f9dfe6190db2?auto=format&fit=crop&w=150&q=80';
+                        }}
+                      />
+                    </div>
+                    <div className="leading-normal">
+                      <h4 className="text-xs font-extrabold text-slate-800 truncate">{pk.nama_bendahara}</h4>
+                      <span className="text-[10px] text-emerald-600 font-extrabold uppercase tracking-wider block mt-0.5">Bendahara PK</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Standard Pengurus list filtered of duplicate names */}
+                {pk.pengurus && pk.pengurus
+                  .filter(mgr => {
+                    const nameLower = mgr.nama?.toLowerCase();
+                    const jbLower = mgr.jabatan?.toLowerCase();
+                    if (pk.nama_sekretaris && nameLower === pk.nama_sekretaris.toLowerCase()) return false;
+                    if (pk.nama_bendahara && nameLower === pk.nama_bendahara.toLowerCase()) return false;
+                    if (pk.nama_sekretaris && (jbLower === 'sekretaris' || jbLower === 'sekretaris pk')) return false;
+                    if (pk.nama_bendahara && (jbLower === 'bendahara' || jbLower === 'bendahara pk')) return false;
+                    return true;
+                  })
+                  .map((mgr, index) => (
+                    <div key={index} className="text-center space-y-2 border border-slate-50 p-3 rounded-2xl hover:bg-slate-50/55 duration-200">
+                      <div className="w-16 h-16 mx-auto rounded-full bg-slate-50 border border-slate-200 overflow-hidden">
+                        <img
+                          src={mgr.foto_url || 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=400&q=80'}
+                          alt={mgr.nama}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1507041957456-9c397ce39c97?auto=format&fit=crop&w=150&q=80';
+                          }}
+                        />
+                      </div>
+                      <div className="leading-normal">
+                        <h4 className="text-xs font-extrabold text-slate-800 truncate">{mgr.nama}</h4>
+                        <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider block mt-0.5">{mgr.jabatan}</span>
+                      </div>
+                    </div>
+                  ))
+                }
               </div>
             )}
           </div>

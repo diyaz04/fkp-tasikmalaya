@@ -581,6 +581,42 @@ export default function LandingPage() {
                     <p className="text-xs text-slate-500 leading-relaxed line-clamp-3">
                       {pk.deskripsi || "Berkomitmen memajukan potensi industri kreatif dan mendirikan inkubator kewirausahaan pemuda."}
                     </p>
+
+                    {/* Sekretaris & Bendahara if filled */}
+                    {(pk.nama_sekretaris || pk.nama_bendahara) && (
+                      <div className="mt-4 pt-3 border-t border-slate-100/80 grid grid-cols-2 gap-2 text-[11px] font-semibold text-slate-500">
+                        {pk.nama_sekretaris && (
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <div className="w-6 h-6 rounded-full bg-slate-100 overflow-hidden shrink-0 border border-slate-200/65">
+                              <img
+                                src={pk.foto_sekretaris_url || 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80'}
+                                alt={pk.nama_sekretaris}
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                            <div className="truncate">
+                              <span className="block text-[8px] text-slate-400 font-extrabold uppercase tracking-wider leading-none">Sekretaris</span>
+                              <span className="block text-slate-700 font-extrabold truncate leading-tight mt-0.5">{pk.nama_sekretaris}</span>
+                            </div>
+                          </div>
+                        )}
+                        {pk.nama_bendahara && (
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <div className="w-6 h-6 rounded-full bg-slate-100 overflow-hidden shrink-0 border border-slate-200/65">
+                              <img
+                                src={pk.foto_bendahara_url || 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=150&q=80'}
+                                alt={pk.nama_bendahara}
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                            <div className="truncate">
+                              <span className="block text-[8px] text-slate-400 font-extrabold uppercase tracking-wider leading-none">Bendahara</span>
+                              <span className="block text-slate-700 font-extrabold truncate leading-tight mt-0.5">{pk.nama_bendahara}</span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
 

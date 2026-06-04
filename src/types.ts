@@ -37,6 +37,10 @@ export interface PKFKP {
   nama_kecamatan: string;
   foto_ketua_url: string;
   nama_ketua: string;
+  nama_sekretaris?: string;
+  foto_sekretaris_url?: string;
+  nama_bendahara?: string;
+  foto_bendahara_url?: string;
   deskripsi: string;
   pengurus: PengurusPK[];
   is_active: boolean;

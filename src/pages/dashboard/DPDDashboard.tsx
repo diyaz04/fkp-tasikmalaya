@@ -64,7 +64,17 @@ export default function DPDDashboard() {
   // CRUD & Edit Temporaries
   const [editingPK, setEditingPK] = useState<PKFKP | null>(null);
   const [newPK, setNewPK] = useState<Partial<PKFKP>>({
-    nama_kecamatan: '', nama_ketua: '', foto_ketua_url: '', deskripsi: '', email: '', is_active: true, pengurus: []
+    nama_kecamatan: '', 
+    nama_ketua: '', 
+    foto_ketua_url: '', 
+    nama_sekretaris: '',
+    foto_sekretaris_url: '',
+    nama_bendahara: '',
+    foto_bendahara_url: '',
+    deskripsi: '', 
+    email: '', 
+    is_active: true, 
+    pengurus: []
   });
   
   const [editingAgenda, setEditingAgenda] = useState<Agenda | null>(null);
@@ -201,6 +211,10 @@ export default function DPDDashboard() {
         nama_kecamatan: newPK.nama_kecamatan || '',
         nama_ketua: newPK.nama_ketua || '',
         foto_ketua_url: newPK.foto_ketua_url || '',
+        nama_sekretaris: newPK.nama_sekretaris || '',
+        foto_sekretaris_url: newPK.foto_sekretaris_url || '',
+        nama_bendahara: newPK.nama_bendahara || '',
+        foto_bendahara_url: newPK.foto_bendahara_url || '',
         deskripsi: newPK.deskripsi || '',
         email: newPK.email || null,
         is_active: newPK.is_active !== undefined ? newPK.is_active : true,
@@ -209,7 +223,19 @@ export default function DPDDashboard() {
       };
       await dbService.savePK(payload);
       setEditingPK(null);
-      setNewPK({ nama_kecamatan: '', nama_ketua: '', foto_ketua_url: '', deskripsi: '', email: '', is_active: true, pengurus: [] });
+      setNewPK({ 
+        nama_kecamatan: '', 
+        nama_ketua: '', 
+        foto_ketua_url: '', 
+        nama_sekretaris: '',
+        foto_sekretaris_url: '',
+        nama_bendahara: '',
+        foto_bendahara_url: '',
+        deskripsi: '', 
+        email: '', 
+        is_active: true, 
+        pengurus: [] 
+      });
       setPkModalOpen(false);
       loadAllDatabase();
       triggerSuccess('Data PK Kecamatan berhasil disimpan!');
@@ -1142,7 +1168,19 @@ export default function DPDDashboard() {
                   onClick={() => {
                     setEditingPK(null);
                     if (!newPK.nama_kecamatan && !newPK.nama_ketua && !newPK.email) {
-                      setNewPK({ nama_kecamatan: '', nama_ketua: '', foto_ketua_url: '', deskripsi: '', email: '', is_active: true, pengurus: [] });
+                      setNewPK({ 
+                        nama_kecamatan: '', 
+                        nama_ketua: '', 
+                        foto_ketua_url: '', 
+                        nama_sekretaris: '',
+                        foto_sekretaris_url: '',
+                        nama_bendahara: '',
+                        foto_bendahara_url: '',
+                        deskripsi: '', 
+                        email: '', 
+                        is_active: true, 
+                        pengurus: [] 
+                      });
                     }
                     setPkModalOpen(true);
                   }}
@@ -1269,6 +1307,42 @@ export default function DPDDashboard() {
                       onChange={(url) => setNewPK({ ...newPK, foto_ketua_url: url })}
                       label="Foto Jajaran Ketua PK"
                     />
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-extrabold text-slate-500 uppercase">Nama Lengkap Sekretaris</label>
+                        <input
+                          type="text"
+                          value={newPK.nama_sekretaris || ''}
+                          onChange={(e) => setNewPK({ ...newPK, nama_sekretaris: e.target.value })}
+                          placeholder="Nama Sekretaris"
+                          className="w-full text-xs p-2.5 border border-slate-200 bg-slate-50 rounded-lg text-slate-700 font-semibold focus:bg-white"
+                        />
+                      </div>
+                      <ImageUploader
+                        value={newPK.foto_sekretaris_url || ''}
+                        onChange={(url) => setNewPK({ ...newPK, foto_sekretaris_url: url })}
+                        label="Foto Sekretaris PK"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-extrabold text-slate-500 uppercase">Nama Lengkap Bendahara</label>
+                        <input
+                          type="text"
+                          value={newPK.nama_bendahara || ''}
+                          onChange={(e) => setNewPK({ ...newPK, nama_bendahara: e.target.value })}
+                          placeholder="Nama Bendahara"
+                          className="w-full text-xs p-2.5 border border-slate-200 bg-slate-50 rounded-lg text-slate-700 font-semibold focus:bg-white"
+                        />
+                      </div>
+                      <ImageUploader
+                        value={newPK.foto_bendahara_url || ''}
+                        onChange={(url) => setNewPK({ ...newPK, foto_bendahara_url: url })}
+                        label="Foto Bendahara PK"
+                      />
+                    </div>
 
                     <div className="space-y-1">
                       <label className="text-[10px] font-extrabold text-slate-500 uppercase">Status Keaktifan</label>

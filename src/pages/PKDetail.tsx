@@ -122,11 +122,11 @@ export default function PKDetail() {
             <div className="space-y-4 py-6">
               <div className="w-32 h-32 mx-auto rounded-full border-4 border-slate-100 bg-slate-50 overflow-hidden relative shadow">
                 <img
-                  src={pk.foto_ketua_url || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80'}
+                  src={pk.foto_ketua_url || 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcROdFy3D0_qsicyRaMCCGt4DeFcIPJ37FduSQ&s'}
                   alt={pk.nama_ketua}
                   className="w-full h-full object-cover"
                   onError={(e) => {
-                    (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1549813069-f9dfe6190db2?auto=format&fit=crop&w=400&q=80';
+                    (e.target as HTMLImageElement).src = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcROdFy3D0_qsicyRaMCCGt4DeFcIPJ37FduSQ&s';
                   }}
                 />
               </div>
@@ -157,11 +157,11 @@ export default function PKDetail() {
                   <div className="text-center space-y-2 border border-blue-50 bg-blue-50/20 p-3 rounded-2xl hover:bg-blue-50/40 duration-200">
                     <div className="w-16 h-16 mx-auto rounded-full bg-slate-50 border border-slate-200 overflow-hidden shadow-sm">
                       <img
-                        src={pk.foto_sekretaris_url || 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=400&q=80'}
+                        src={pk.foto_sekretaris_url || 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcROdFy3D0_qsicyRaMCCGt4DeFcIPJ37FduSQ&s'}
                         alt={pk.nama_sekretaris}
                         className="w-full h-full object-cover"
                         onError={(e) => {
-                          (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1549813069-f9dfe6190db2?auto=format&fit=crop&w=150&q=80';
+                          (e.target as HTMLImageElement).src = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcROdFy3D0_qsicyRaMCCGt4DeFcIPJ37FduSQ&s';
                         }}
                       />
                     </div>
@@ -177,11 +177,11 @@ export default function PKDetail() {
                   <div className="text-center space-y-2 border border-emerald-50 bg-emerald-50/20 p-3 rounded-2xl hover:bg-emerald-50/40 duration-200">
                     <div className="w-16 h-16 mx-auto rounded-full bg-slate-50 border border-slate-200 overflow-hidden shadow-sm">
                       <img
-                        src={pk.foto_bendahara_url || 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=400&q=80'}
+                        src={pk.foto_bendahara_url || 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcROdFy3D0_qsicyRaMCCGt4DeFcIPJ37FduSQ&s'}
                         alt={pk.nama_bendahara}
                         className="w-full h-full object-cover"
                         onError={(e) => {
-                          (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1549813069-f9dfe6190db2?auto=format&fit=crop&w=150&q=80';
+                          (e.target as HTMLImageElement).src = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcROdFy3D0_qsicyRaMCCGt4DeFcIPJ37FduSQ&s';
                         }}
                       />
                     </div>
@@ -207,11 +207,11 @@ export default function PKDetail() {
                     <div key={index} className="text-center space-y-2 border border-slate-50 p-3 rounded-2xl hover:bg-slate-50/55 duration-200">
                       <div className="w-16 h-16 mx-auto rounded-full bg-slate-50 border border-slate-200 overflow-hidden">
                         <img
-                          src={mgr.foto_url || 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=400&q=80'}
+                          src={mgr.foto_url || 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcROdFy3D0_qsicyRaMCCGt4DeFcIPJ37FduSQ&s'}
                           alt={mgr.nama}
                           className="w-full h-full object-cover"
                           onError={(e) => {
-                            (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1507041957456-9c397ce39c97?auto=format&fit=crop&w=150&q=80';
+                            (e.target as HTMLImageElement).src = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcROdFy3D0_qsicyRaMCCGt4DeFcIPJ37FduSQ&s';
                           }}
                         />
                       </div>

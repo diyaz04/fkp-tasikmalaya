@@ -649,11 +649,11 @@ export default function LandingPage() {
                     <div>
                       <div className="relative h-48 overflow-hidden bg-slate-100">
                         <img
-                          src={pk.foto_ketua_url || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80"}
+                          src={pk.foto_ketua_url || "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcROdFy3D0_qsicyRaMCCGt4DeFcIPJ37FduSQ&s"}
                           alt={pk.nama_ketua}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                           onError={(e) => {
-                            (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1549813069-f9dfe6190db2?auto=format&fit=crop&w=400&q=80';
+                            (e.target as HTMLImageElement).src = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcROdFy3D0_qsicyRaMCCGt4DeFcIPJ37FduSQ&s';
                           }}
                         />
                         <div className="absolute top-3 left-3 bg-slate-900/80 text-white text-[11px] font-mono tracking-widest uppercase px-3 py-1 rounded-full backdrop-blur-sm font-bold">
@@ -677,9 +677,12 @@ export default function LandingPage() {
                               <div className="flex items-center gap-1.5 min-w-0">
                                 <div className="w-6 h-6 rounded-full bg-slate-100 overflow-hidden shrink-0 border border-slate-200/65">
                                   <img
-                                    src={pk.foto_sekretaris_url || 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80'}
+                                    src={pk.foto_sekretaris_url || 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcROdFy3D0_qsicyRaMCCGt4DeFcIPJ37FduSQ&s'}
                                     alt={pk.nama_sekretaris}
                                     className="w-full h-full object-cover"
+                                    onError={(e) => {
+                                      (e.target as HTMLImageElement).src = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcROdFy3D0_qsicyRaMCCGt4DeFcIPJ37FduSQ&s';
+                                    }}
                                   />
                                 </div>
                                 <div className="truncate">
@@ -692,9 +695,12 @@ export default function LandingPage() {
                               <div className="flex items-center gap-1.5 min-w-0">
                                 <div className="w-6 h-6 rounded-full bg-slate-100 overflow-hidden shrink-0 border border-slate-200/65">
                                   <img
-                                    src={pk.foto_bendahara_url || 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=150&q=80'}
+                                    src={pk.foto_bendahara_url || 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcROdFy3D0_qsicyRaMCCGt4DeFcIPJ37FduSQ&s'}
                                     alt={pk.nama_bendahara}
                                     className="w-full h-full object-cover"
+                                    onError={(e) => {
+                                      (e.target as HTMLImageElement).src = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcROdFy3D0_qsicyRaMCCGt4DeFcIPJ37FduSQ&s';
+                                    }}
                                   />
                                 </div>
                                 <div className="truncate">

@@ -566,8 +566,11 @@ export default function DPDDashboard() {
       setUmkmModalOpen(false);
       loadAllDatabase();
       triggerSuccess('Data UMKM wirausaha disimpan!');
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      let errMsg = err.message || String(err);
+      try { const parsed = JSON.parse(err.message); if (parsed.error) errMsg = parsed.error; } catch {}
+      alert(`Gagal menyimpan UMKM: ${errMsg}`);
     }
   };
 
@@ -577,8 +580,11 @@ export default function DPDDashboard() {
       await dbService.deleteUMKM(id);
       loadAllDatabase();
       triggerSuccess('UMKM berhasil dihapus.');
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      let errMsg = err.message || String(err);
+      try { const parsed = JSON.parse(err.message); if (parsed.error) errMsg = parsed.error; } catch {}
+      alert(`Gagal menghapus UMKM: ${errMsg}`);
     }
   };
 

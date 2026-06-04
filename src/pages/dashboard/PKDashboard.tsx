@@ -120,8 +120,11 @@ export default function PKDashboard() {
     try {
       await dbService.savePK(pk);
       triggerSuccess('Profil pengurus kecamatan berhasil tersimpan!');
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      let errMsg = err.message || String(err);
+      try { const parsed = JSON.parse(err.message); if (parsed.error) errMsg = parsed.error; } catch {}
+      alert(`Gagal menyimpan profil: ${errMsg}`);
     }
   };
 
@@ -177,8 +180,11 @@ export default function PKDashboard() {
       setNewBerita({ judul: '', konten: '', thumbnail_url: '', status: 'pending' });
       loadLocalPKData();
       triggerSuccess('Artikel berita berhasil diajukan ke DPD untuk persetujuan terbit!');
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      let errMsg = err.message || String(err);
+      try { const parsed = JSON.parse(err.message); if (parsed.error) errMsg = parsed.error; } catch {}
+      alert(`Gagal mengajukan berita: ${errMsg}`);
     }
   };
 
@@ -188,8 +194,11 @@ export default function PKDashboard() {
       await dbService.deleteBerita(newsId);
       loadLocalPKData();
       triggerSuccess('Artikel usulan rill dihapus.');
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      let errMsg = err.message || String(err);
+      try { const parsed = JSON.parse(err.message); if (parsed.error) errMsg = parsed.error; } catch {}
+      alert(`Gagal menghapus berita: ${errMsg}`);
     }
   };
 
@@ -221,8 +230,11 @@ export default function PKDashboard() {
       setUmkmModalOpen(false);
       loadLocalPKData();
       triggerSuccess('Data UMKM lokal berhasil disimpan!');
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      let errMsg = err.message || String(err);
+      try { const parsed = JSON.parse(err.message); if (parsed.error) errMsg = parsed.error; } catch {}
+      alert(`Gagal menyimpan UMKM: ${errMsg}`);
     }
   };
 
@@ -232,8 +244,11 @@ export default function PKDashboard() {
       await dbService.deleteUMKM(targetId);
       loadLocalPKData();
       triggerSuccess('Katalog UMKM berhasil dihapus.');
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      let errMsg = err.message || String(err);
+      try { const parsed = JSON.parse(err.message); if (parsed.error) errMsg = parsed.error; } catch {}
+      alert(`Gagal menghapus UMKM: ${errMsg}`);
     }
   };
 

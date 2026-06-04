@@ -257,6 +257,39 @@ export default function UMKMDirectory() {
           </div>
         )}
 
+        {/* Informative CTA Banner for registering UMKM */}
+        <div className="mt-16 bg-gradient-to-br from-slate-900 to-slate-800 rounded-3xl p-8 sm:p-10 text-white shadow-xl relative overflow-hidden" id="umkm-registration-cta">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(14,165,233,0.15),transparent_45%)]" />
+          <div className="relative z-10 max-w-3xl mx-auto text-center space-y-6">
+            <span className="text-[10px] sm:text-xs font-bold text-sky-400 bg-sky-500/10 px-4 py-1.5 rounded-full uppercase tracking-wider inline-block">
+              Pendaftaran Direktori UMKM
+            </span>
+            <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight">
+              Ingin Usaha Kreatif Anda Tampil di Portal Ini?
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-medium">
+              Sesuai regulasi organisasi, direktori UMKM binaan dikelola secara satu pintu. Data usaha dapat diinputkan secara gratis ke dalam sistem oleh **Pengurus Kecamatan (PK) FKP** wilayah masing-masing, atau dibantu langsung oleh **Admin DPD FKP Kabupaten Tasikmalaya**.
+            </p>
+            <div className="flex flex-col sm:flex-row justify-center items-center gap-3 pt-3">
+              <a
+                href="https://wa.me/6281234567890?text=Halo%20Admin%20FKP%20Tasikmalaya%2C%20saya%20ingin%20mendaftarkan%20usaha%20UMKM%20saya%20ke%20website%20portal%20direktori."
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full sm:w-auto bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 font-bold text-xs px-6 py-3 rounded-full shadow-lg transition-all flex items-center justify-center gap-2"
+              >
+                <Phone className="w-4 h-4" />
+                Hubungi Pengurus FKP
+              </a>
+              <a
+                href="/login"
+                className="w-full sm:w-auto bg-transparent hover:bg-white/10 text-white font-bold text-xs border border-white/20 px-6 py-3 rounded-full transition-all flex items-center justify-center gap-2"
+              >
+                Masuk ke Dashboard
+              </a>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
   );

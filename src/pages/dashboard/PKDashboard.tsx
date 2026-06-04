@@ -210,6 +210,27 @@ export default function PKDashboard() {
     if (!user || !user.pkId || !pk) return;
     try {
       const uId = editingUMKM ? editingUMKM.id : 'u_' + Date.now();
+      const namaUsahaBaru = (newUMKM.nama_usaha || '').trim().toLowerCase();
+      const noWhatsappBaru = (newUMKM.no_whatsapp || '').trim();
+
+      // Deteksi Duplikasi secara Global Real-Time
+      const allUMKMs = await dbService.getUMKMs();
+      const duplicateItem = allUMKMs.find(u => {
+        if (u.id === uId) return false;
+        const namaSama = u.nama_usaha.trim().toLowerCase() === namaUsahaBaru;
+        const waSama = noWhatsappBaru && u.no_whatsapp && u.no_whatsapp.trim() === noWhatsappBaru;
+        return namaSama || waSama;
+      });
+
+      if (duplicateItem) {
+        const isNameMatch = duplicateItem.nama_usaha.trim().toLowerCase() === namaUsahaBaru;
+        const reason = isNameMatch 
+          ? `Nama usaha "${duplicateItem.nama_usaha}" sudah terdaftar di Kecamatan ${duplicateItem.kecamatan || 'lain'}`
+          : `Nomor WhatsApp "${noWhatsappBaru}" sudah digunakan oleh usaha "${duplicateItem.nama_usaha}" di Kecamatan ${duplicateItem.kecamatan || 'lain'}`;
+        alert(`Gagal menyimpan: Terdeteksi duplikat!\n\n${reason}.\n\nSilakan periksa kembali data usaha yang Anda inputkan.`);
+        return;
+      }
+
       const payload: UMKM = {
         id: uId,
         pk_id: user.pkId,

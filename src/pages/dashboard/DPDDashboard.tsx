@@ -5,6 +5,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import * as XLSX from 'xlsx';
 import { 
   LayoutDashboard, 
   Settings, 
@@ -75,7 +76,8 @@ export default function DPDDashboard() {
     deskripsi: '', 
     email: '', 
     is_active: true, 
-    pengurus: []
+    pengurus: [],
+    password: ''
   });
   
   const [editingAgenda, setEditingAgenda] = useState<Agenda | null>(null);
@@ -227,7 +229,8 @@ export default function DPDDashboard() {
         email: newPK.email || null,
         is_active: newPK.is_active !== undefined ? newPK.is_active : true,
         pengurus: editingPK ? editingPK.pengurus : [],
-        created_at: editingPK ? editingPK.created_at : new Date().toISOString()
+        created_at: editingPK ? editingPK.created_at : new Date().toISOString(),
+        password: newPK.password || ''
       };
       await dbService.savePK(payload);
       setEditingPK(null);
@@ -242,7 +245,8 @@ export default function DPDDashboard() {
         deskripsi: '', 
         email: '', 
         is_active: true, 
-        pengurus: [] 
+        pengurus: [],
+        password: ''
       });
       setPkModalOpen(false);
       loadAllDatabase();
@@ -250,6 +254,122 @@ export default function DPDDashboard() {
     } catch (err) {
       console.error(err);
     }
+  };
+
+  const downloadExcelTemplate = () => {
+    try {
+      const headers = [
+        ["nama_kecamatan", "email", "password", "nama_ketua", "nama_sekretaris", "nama_bendahara", "deskripsi"],
+        ["Singaparna", "pk.singaparna@gmail.com", "sandi123", "Hendra Gunawan", "Siti Rahmawati", "Dewi Lestari", "Kecamatan Singaparna berkomitmen memajukan potensi industri kreatif lokal"]
+      ];
+      
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.aoa_to_sheet(headers);
+      XLSX.utils.book_append_sheet(wb, ws, "Template Import PK");
+      XLSX.writeFile(wb, "template_import_pk.xlsx");
+      triggerSuccess('Berhasil mengunduh Template Excel (.xlsx)!');
+    } catch (err) {
+      console.error(err);
+      alert("Gagal mengunduh template Excel.");
+    }
+  };
+
+  const handleImportExcel = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const data = event.target?.result;
+      if (!data) return;
+
+      try {
+        const workbook = XLSX.read(data, { type: 'binary' });
+        const firstSheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[firstSheetName];
+        
+        // Read as array of arrays
+        const rows: any[][] = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+        if (rows.length < 2) {
+          alert("File Excel kosong atau tidak memiliki data.");
+          return;
+        }
+
+        const headers = rows[0].map((h: any) => String(h || '').trim().toLowerCase());
+        
+        const idxKecamatan = headers.indexOf("nama_kecamatan");
+        const idxEmail = headers.indexOf("email");
+        const idxPassword = headers.indexOf("password");
+        const idxKetua = headers.indexOf("nama_ketua");
+        const idxSekretaris = headers.indexOf("nama_sekretaris");
+        const idxBendahara = headers.indexOf("nama_bendahara");
+        const idxDeskripsi = headers.indexOf("deskripsi");
+
+        if (idxKecamatan === -1 || idxEmail === -1) {
+          alert("Format spreadsheet tidak valid. Harus menyertakan kolom label 'nama_kecamatan' dan 'email'.");
+          return;
+        }
+
+        let importedCount = 0;
+        const importedPKs: PKFKP[] = [];
+
+        for (let i = 1; i < rows.length; i++) {
+          const row = rows[i];
+          if (!row || row.length === 0 || !row[idxKecamatan]) continue;
+
+          const nama_kecamatan = String(row[idxKecamatan] || '').trim();
+          const email = String(row[idxEmail] || '').trim();
+          const pwd = idxPassword !== -1 && row[idxPassword] ? String(row[idxPassword]).trim() : "sandi123";
+          const nama_ketua = idxKetua !== -1 && row[idxKetua] ? String(row[idxKetua]).trim() : "Belum Diatur";
+          const nama_sekretaris = idxSekretaris !== -1 && row[idxSekretaris] ? String(row[idxSekretaris]).trim() : "";
+          const nama_bendahara = idxBendahara !== -1 && row[idxBendahara] ? String(row[idxBendahara]).trim() : "";
+          const deskripsi = idxDeskripsi !== -1 && row[idxDeskripsi] ? String(row[idxDeskripsi]).trim() : `Pengurus Kecamatan FKP Kecamatan ${nama_kecamatan}`;
+
+          if (!nama_kecamatan || !email) continue;
+
+          // Stable pkId matching DPD's naming standard
+          const pkId = 'pk_' + nama_kecamatan.toLowerCase().replace(/[^a-z0-9]+/g, '_');
+
+          const payload: PKFKP = {
+            id: pkId,
+            nama_kecamatan,
+            email,
+            password: pwd,
+            nama_ketua,
+            nama_sekretaris,
+            nama_bendahara,
+            deskripsi,
+            foto_ketua_url: "",
+            foto_sekretaris_url: "",
+            foto_bendahara_url: "",
+            is_active: true,
+            pengurus: [],
+            created_at: new Date().toISOString()
+          };
+
+          importedPKs.push(payload);
+          importedCount++;
+        }
+
+        if (importedPKs.length === 0) {
+          alert("Tidak ada data PK Kecamatan yang valid.");
+          return;
+        }
+
+        for (const pkItem of importedPKs) {
+          await dbService.savePK(pkItem);
+        }
+
+        triggerSuccess(`Berhasil mengimpor ${importedCount} Kecamatan PK baru dari Excel!`);
+        loadAllDatabase();
+      } catch (err) {
+        console.error("Gagal mengimpor Excel", err);
+        alert("Gagal mengurai file Excel (.xlsx). Pastikan format tabel sesuai.");
+      }
+    };
+    reader.readAsBinaryString(file);
+    // clear input
+    e.target.value = "";
   };
 
   const handleDeletePK = async (id: string) => {
@@ -1243,12 +1363,29 @@ export default function DPDDashboard() {
           <div className="space-y-6 animate-fade-in" id="dpd-pk-subsection">
             
             <div className="bg-white border border-slate-200/50 p-6 rounded-2xl shadow w-full">
-              <div className="flex justify-between items-center border-b border-slate-100 pb-3 mb-4">
+              <div className="flex flex-col sm:flex-row justify-between sm:items-center border-b border-slate-100 pb-3 mb-4 gap-3">
                 <h3 className="text-sm font-extrabold uppercase tracking-widest text-slate-800">Daftar Wilayah Resmi PK FKP Kabupaten</h3>
-                <button
-                  onClick={() => {
-                    setEditingPK(null);
-                    if (!newPK.nama_kecamatan && !newPK.nama_ketua && !newPK.email) {
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={downloadExcelTemplate}
+                    className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3.5 py-2 rounded-full text-xs font-bold inline-flex items-center gap-1.5 transition animate-fade-in"
+                  >
+                    Unduh Template Excel
+                  </button>
+                  <label className="bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 rounded-full text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer transition animate-fade-in">
+                    <span>Impor Data Excel</span>
+                    <input
+                      type="file"
+                      accept=".xlsx, .xls"
+                      onChange={handleImportExcel}
+                      className="hidden"
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingPK(null);
                       setNewPK({ 
                         nama_kecamatan: '', 
                         nama_ketua: '', 
@@ -1260,16 +1397,17 @@ export default function DPDDashboard() {
                         deskripsi: '', 
                         email: '', 
                         is_active: true, 
-                        pengurus: [] 
+                        pengurus: [],
+                        password: ''
                       });
-                    }
-                    setPkModalOpen(true);
-                  }}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-full text-xs font-bold inline-flex items-center gap-1"
-                >
-                  <Plus className="w-4 h-4" />
-                  Daftarkan PK Baru
-                </button>
+                      setPkModalOpen(true);
+                    }}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-3.5 py-2 rounded-full text-xs font-bold inline-flex items-center gap-1 transition"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Daftarkan PK Baru
+                  </button>
+                </div>
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -1286,8 +1424,9 @@ export default function DPDDashboard() {
                       </div>
                       <p className="text-[10px] text-slate-400 font-bold block mt-1">Ketua: {p.nama_ketua}</p>
                       <p className="text-[10px] text-slate-400 font-semibold block truncate mt-0.5">Email: {p.email || 'Belum diatur'}</p>
+                      <p className="text-[10px] text-slate-450 font-semibold block truncate mt-0.5">Sandi: {p.password || 'sandi123'}</p>
                     </div>
-
+ 
                     <div className="flex justify-end gap-1.5 border-t border-slate-200/50 pt-2 text-[10px] font-bold">
                       <button
                         onClick={() => {
@@ -1310,7 +1449,7 @@ export default function DPDDashboard() {
                 ))}
               </div>
             </div>
-
+ 
             {/* Modal Popup PK Register / Edit */}
             {pkModalOpen && (
               <div 
@@ -1336,7 +1475,7 @@ export default function DPDDashboard() {
                       Tutup
                     </button>
                   </div>
-
+ 
                   <form onSubmit={handleSavePK} className="space-y-4">
                     <div className="space-y-1">
                       <label className="text-[10px] font-extrabold text-slate-500 uppercase">Nama Kecamatan</label>
@@ -1349,7 +1488,7 @@ export default function DPDDashboard() {
                         required
                       />
                     </div>
-
+ 
                     <div className="space-y-1">
                       <label className="text-[10px] font-extrabold text-slate-500 uppercase">Akun Gmail Terkait (Untuk Google login)</label>
                       <input
@@ -1362,6 +1501,18 @@ export default function DPDDashboard() {
                       />
                     </div>
 
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-extrabold text-slate-500 uppercase">Kata Sandi Akses (Preset Login)</label>
+                      <input
+                        type="text"
+                        value={newPK.password || ''}
+                        onChange={(e) => setNewPK({ ...newPK, password: e.target.value })}
+                        placeholder="Sandi preset..."
+                        className="w-full text-xs p-2.5 border border-slate-200 bg-slate-50 rounded-lg text-slate-700 font-semibold focus:bg-white"
+                        required
+                      />
+                    </div>
+ 
                     <div className="space-y-1">
                       <label className="text-[10px] font-extrabold text-slate-500 uppercase">Nama Lengkap Ketua PK</label>
                       <input

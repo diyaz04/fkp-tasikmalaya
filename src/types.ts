@@ -46,6 +46,7 @@ export interface PKFKP {
   is_active: boolean;
   created_at: string;
   email: string | null; // For email mapping-based PK Auth login
+  password?: string; // Preset password for on-the-fly Auth account creation
 }
 
 export interface Berita {

@@ -3,9 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Outlet } from 'react-router-dom';
 import Navbar from '@/src/components/Navbar';
 import Footer from '@/src/components/Footer';
+import { useAuthStore } from '@/src/store/authStore';
 
 // Pages
 import LandingPage from '@/src/pages/LandingPage';
@@ -33,6 +35,12 @@ function PublicLayout() {
 }
 
 export default function App() {
+  const initAuth = useAuthStore((state) => state.initAuth);
+
+  useEffect(() => {
+    initAuth();
+  }, [initAuth]);
+
   return (
     <Router>
       <Routes>

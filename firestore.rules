@@ -13,11 +13,11 @@ service cloud.firestore {
     }
 
     function isEmailVerified() {
-      return request.auth == null || (isSignedIn() && request.auth.token.email_verified == true);
+      return isSignedIn() && (request.auth.token.email_verified == true || request.auth.token.firebase.sign_in_provider == "google.com");
     }
 
     function isAdmin() {
-      return request.auth == null || (isEmailVerified() && request.auth.token.email == "sriwulandari16092000@gmail.com");
+      return isEmailVerified() && (request.auth.token.email == "admindpdfkp@gmail.com" || request.auth.token.email == "sriwulandari16092000@gmail.com");
     }
 
     function isValidId(id) {

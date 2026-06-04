@@ -9,7 +9,10 @@ import {
   GoogleAuthProvider, 
   signOut, 
   onAuthStateChanged,
-  User as FirebaseUser
+  User as FirebaseUser,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  updateProfile
 } from 'firebase/auth';
 import { auth, isFirebaseConfigured } from '@/src/lib/firebase';
 import { dbService } from '@/src/lib/db';
@@ -27,10 +30,12 @@ interface AuthState {
   user: AuthUser | null;
   loading: boolean;
   error: string | null;
-  loginAsDemo: (role: 'dpd' | 'pk', email?: string) => Promise<void>;
   logout: () => Promise<void>;
   signInWithGoogle: () => Promise<void>;
+  signInWithEmail: (email: string, password: string) => Promise<void>;
+  signUpWithEmail: (email: string, password: string, displayName: string) => Promise<void>;
   initAuth: () => void;
+  setError: (error: string | null) => void;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -38,40 +43,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   loading: true,
   error: null,
 
-  loginAsDemo: async (role, email) => {
-    set({ loading: true, error: null });
-    try {
-      if (role === 'dpd') {
-        set({
-          user: {
-            uid: 'demo_dpd_uid',
-            email: 'sriwulandari16092000@gmail.com',
-            displayName: 'Sri Wulandari (DPD Ketua Admin)',
-            role: 'dpd'
-          },
-          loading: false
-        });
-      } else {
-        const testEmail = email || 'pk.singaparna@gmail.com';
-        const pks = await dbService.getPKs();
-        const foundPK = pks.find(p => p.email === testEmail);
-        
-        set({
-          user: {
-            uid: 'demo_pk_uid_' + (foundPK?.id || 'singaparna'),
-            email: testEmail,
-            displayName: `Ahmad (PK ${foundPK?.nama_kecamatan || 'Singaparna'})`,
-            role: 'pk',
-            pkId: foundPK?.id || 'pk_singaparna',
-            nama_kecamatan: foundPK?.nama_kecamatan || 'Singaparna'
-          },
-          loading: false
-        });
-      }
-    } catch (e: any) {
-      set({ error: e.message, loading: false });
-    }
-  },
+  setError: (error) => set({ error }),
 
   logout: async () => {
     set({ loading: true });
@@ -85,22 +57,109 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({ user: null, loading: false });
   },
 
-  signInWithGoogle: async () => {
-    if (!isFirebaseConfigured) {
-      // Direct demo login to make sure preview is fully interactive
-      set({ loading: true });
-      set({
-        user: {
-          uid: 'demo_dpd_uid',
-          email: 'sriwulandari16092000@gmail.com',
-          displayName: 'Sri Wulandari (DPD Ketua Admin)',
-          role: 'dpd'
-        },
-        loading: false
-      });
-      return;
-    }
+  signInWithEmail: async (email, password) => {
+    set({ loading: true, error: null });
+    try {
+      // 1. Look up if this email is an imported/registered PK Kecamatan
+      let foundPK: any = null;
+      try {
+        const pks = await dbService.getPKs();
+        foundPK = pks.find(p => p.email && p.email.toLowerCase() === email?.toLowerCase());
+      } catch (dbErr) {
+        console.error('Error looking up PK in login flow:', dbErr);
+      }
 
+      if (foundPK) {
+        // If a preset password is saved for this PK, check if it matches first
+        if (foundPK.password && foundPK.password !== password) {
+          throw new Error('Kata sandi salah. Silakan coba kembali.');
+        }
+
+        // Try to sign in with standard Firebase Auth
+        try {
+          const result = await signInWithEmailAndPassword(auth, email, password);
+          if (result.user) {
+            const mapped = await mapFirebaseUserToAuthUser(result.user);
+            set({ user: mapped, loading: false });
+          } else {
+            set({ loading: false });
+          }
+        } catch (authError: any) {
+          // If password matches the database preset, but Firebase Auth fails (e.g. user-not-found/invalid-credential),
+          // it means their Firebase Auth record hasn't been created yet. Let's auto-create it on-the-fly now!
+          if (authError.code === 'auth/invalid-credential' || authError.code === 'auth/user-not-found') {
+            try {
+              const registerResult = await createUserWithEmailAndPassword(auth, email, password);
+              if (registerResult.user) {
+                await updateProfile(registerResult.user, { displayName: `PK ${foundPK.nama_kecamatan}` });
+                const mapped = await mapFirebaseUserToAuthUser(registerResult.user);
+                set({ user: mapped, loading: false });
+              } else {
+                set({ loading: false });
+              }
+            } catch (createErr: any) {
+              console.error('Failed auto-registration on login:', createErr);
+              throw authError; // fallback to original error
+            }
+          } else {
+            throw authError;
+          }
+        }
+      } else {
+        // Fallback for non-PK logins (e.g. DPD admindpdfkp@gmail.com)
+        const result = await signInWithEmailAndPassword(auth, email, password);
+        if (result.user) {
+          const mapped = await mapFirebaseUserToAuthUser(result.user);
+          set({ user: mapped, loading: false });
+        } else {
+          set({ loading: false });
+        }
+      }
+    } catch (e: any) {
+      let friendlyMessage = e.message;
+      if (e.code === 'auth/invalid-credential' || e.code === 'auth/wrong-password' || e.code === 'auth/user-not-found') {
+        friendlyMessage = 'Email atau sandi salah atau tidak terdaftar. Silakan periksa kembali.';
+      } else if (e.code === 'auth/invalid-email') {
+        friendlyMessage = 'Format alamat email tidak valid.';
+      } else if (e.code === 'auth/network-request-failed') {
+        friendlyMessage = 'Koneksi internet bermasalah. Silakan coba lagi.';
+      }
+      set({ error: friendlyMessage, loading: false });
+      throw new Error(friendlyMessage);
+    }
+  },
+
+  signUpWithEmail: async (email, password, displayName) => {
+    set({ loading: true, error: null });
+    try {
+      const result = await createUserWithEmailAndPassword(auth, email, password);
+      if (result.user) {
+        await updateProfile(result.user, { displayName });
+        // Fetch fresh mapping with display name loaded
+        const mapped = await mapFirebaseUserToAuthUser(result.user);
+        // Overwrite mapped display name if it empty/null
+        if (!mapped.displayName) {
+          mapped.displayName = displayName;
+        }
+        set({ user: mapped, loading: false });
+      } else {
+        set({ loading: false });
+      }
+    } catch (e: any) {
+      let friendlyMessage = e.message;
+      if (e.code === 'auth/email-already-in-use') {
+        friendlyMessage = 'Email ini sudah terdaftar. Silakan pilih email lain atau silakan masuk.';
+      } else if (e.code === 'auth/weak-password') {
+        friendlyMessage = 'Kata sandi terlalu lemah. Minimal 6 karakter.';
+      } else if (e.code === 'auth/invalid-email') {
+        friendlyMessage = 'Format alamat email tidak valid.';
+      }
+      set({ error: friendlyMessage, loading: false });
+      throw new Error(friendlyMessage);
+    }
+  },
+
+  signInWithGoogle: async () => {
     set({ loading: true, error: null });
     try {
       const provider = new GoogleAuthProvider();
@@ -118,11 +177,6 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   initAuth: () => {
-    if (!isFirebaseConfigured) {
-      set({ loading: false });
-      return;
-    }
-
     onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
       set({ loading: true });
       if (firebaseUser) {
@@ -140,7 +194,7 @@ async function mapFirebaseUserToAuthUser(firebaseUser: FirebaseUser): Promise<Au
   const email = firebaseUser.email;
   
   // DPD hardcoded email check (Admin)
-  if (email === 'sriwulandari16092000@gmail.com') {
+  if (email === 'admindpdfkp@gmail.com' || email === 'sriwulandari16092000@gmail.com') {
     return {
       uid: firebaseUser.uid,
       email: firebaseUser.email,

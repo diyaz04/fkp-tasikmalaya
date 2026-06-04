@@ -496,6 +496,44 @@ export default function PKDashboard() {
                 label="Foto Profil Ketua PK"
               />
 
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-4 border-t border-slate-100">
+                <div className="space-y-4">
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-extrabold text-slate-500 uppercase">Nama Lengkap Sekretaris PK</label>
+                    <input
+                      type="text"
+                      value={pk.nama_sekretaris || ''}
+                      onChange={(e) => setPk({ ...pk, nama_sekretaris: e.target.value })}
+                      className="w-full text-xs p-2.5 border border-slate-200 bg-slate-50 rounded-lg text-slate-700 font-semibold"
+                      placeholder="Nama Sekretaris PK..."
+                    />
+                  </div>
+                  <ImageUploader
+                    value={pk.foto_sekretaris_url || ''}
+                    onChange={(url) => setPk({ ...pk, foto_sekretaris_url: url })}
+                    label="Foto Profil Sekretaris PK"
+                  />
+                </div>
+
+                <div className="space-y-4">
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-extrabold text-slate-500 uppercase">Nama Lengkap Bendahara PK</label>
+                    <input
+                      type="text"
+                      value={pk.nama_bendahara || ''}
+                      onChange={(e) => setPk({ ...pk, nama_bendahara: e.target.value })}
+                      className="w-full text-xs p-2.5 border border-slate-200 bg-slate-50 rounded-lg text-slate-700 font-semibold"
+                      placeholder="Nama Bendahara PK..."
+                    />
+                  </div>
+                  <ImageUploader
+                    value={pk.foto_bendahara_url || ''}
+                    onChange={(url) => setPk({ ...pk, foto_bendahara_url: url })}
+                    label="Foto Profil Bendahara PK"
+                  />
+                </div>
+              </div>
+
               {/* SAVE BTN FOR GENERAL PROFILES */}
               <div className="flex justify-end pt-2">
                 <button

@@ -171,7 +171,7 @@ export default function NewsList() {
                 <div className="p-6 pt-0 border-t border-slate-50 mt-4 flex items-center justify-between text-xs text-slate-400">
                   <div className="flex items-center gap-1">
                     <User className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>{ber.penulis}</span>
+                    <span>{ber.penulis}{ber.editor_dpd ? ` (Ed: ${ber.editor_dpd})` : ''}</span>
                   </div>
                   <span className="font-extrabold text-blue-600 group-hover:text-cyan-500 inline-flex items-center gap-0.5 duration-200">
                     Selengkapnya

@@ -61,6 +61,7 @@ export interface Berita {
   catatan_review: string | null;
   published_at: string | null;
   created_at: string;
+  editor_dpd?: string | null;
 }
 
 export interface Agenda {

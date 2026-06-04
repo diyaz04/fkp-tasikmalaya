@@ -732,6 +732,12 @@ export default function NewsDetail() {
                       <User className="w-3.5 h-3.5 text-cyan-500" />
                       <span>Penulis: {berita.penulis}</span>
                     </div>
+                    {berita.editor_dpd && (
+                      <div className="flex items-center gap-2 bg-blue-50 text-blue-800 px-2.5 py-0.5 rounded-lg text-[10px] font-black border border-blue-100">
+                        <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span>
+                        <span>Editor DPD: {berita.editor_dpd}</span>
+                      </div>
+                    )}
                     <div className="flex items-center gap-1.5">
                       <Clock className="w-3.5 h-3.5 text-cyan-500" />
                       <span>Terbit</span>

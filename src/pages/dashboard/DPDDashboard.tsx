@@ -24,7 +24,8 @@ import {
   Monitor, 
   AlertCircle,
   Home,
-  LogOut
+  LogOut,
+  Eye
 } from 'lucide-react';
 import { useAuthStore } from '@/src/store/authStore';
 import { dbService } from '@/src/lib/db';
@@ -98,6 +99,13 @@ export default function DPDDashboard() {
 
   const [showStatusNotesId, setShowStatusNotesId] = useState<string | null>(null);
   const [reviewNote, setReviewNote] = useState('');
+
+  // Editing and Reviewing state for pending news from PK
+  const [reviewingBerita, setReviewingBerita] = useState<Berita | null>(null);
+  const [editedTitle, setEditedTitle] = useState('');
+  const [editedContent, setEditedContent] = useState('');
+  const [editorDpdName, setEditorDpdName] = useState('Admin DPD');
+  const [editedThumbnailUrl, setEditedThumbnailUrl] = useState('');
 
   // Save/Edit success notifications
   const [successMsg, setSuccessMsg] = useState('');
@@ -303,6 +311,57 @@ export default function DPDDashboard() {
       triggerSuccess(`Materi berita status updated to: ${status}`);
     } catch (err) {
       console.error(err);
+    }
+  };
+
+  const handleOpenReviewModal = (b: Berita) => {
+    setReviewingBerita(b);
+    setEditedTitle(b.judul);
+    setEditedContent(b.konten);
+    setEditedThumbnailUrl(b.thumbnail_url || '');
+    setEditorDpdName(b.editor_dpd || 'Admin DPD');
+    setReviewNote(b.catatan_review || '');
+  };
+
+  const handleSaveAndPublishPKBerita = async () => {
+    if (!reviewingBerita) return;
+    try {
+      const bSlug = editedTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+      const updated: Berita = {
+        ...reviewingBerita,
+        judul: editedTitle,
+        slug: bSlug,
+        konten: editedContent,
+        thumbnail_url: editedThumbnailUrl,
+        editor_dpd: editorDpdName || 'Admin DPD',
+        status: 'published',
+        published_at: new Date().toISOString(),
+        catatan_review: null
+      };
+      await dbService.saveBerita(updated);
+      setReviewingBerita(null);
+      loadAllDatabase();
+      triggerSuccess('Berita PK berhasil diedit & dipublikasikan secara resmi!');
+    } catch (err) {
+      console.error('Failed to save & publish PK news', err);
+    }
+  };
+
+  const handleRejectWithNote = async (noteText: string) => {
+    if (!reviewingBerita) return;
+    try {
+      const updated: Berita = {
+        ...reviewingBerita,
+        status: 'rejected',
+        catatan_review: noteText || 'Perbaiki konten sesuai instruksi.',
+        published_at: null
+      };
+      await dbService.saveBerita(updated);
+      setReviewingBerita(null);
+      loadAllDatabase();
+      triggerSuccess('Berita PK ditolak dengan catatan perbaikan.');
+    } catch (err) {
+      console.error('Failed to reject PK news', err);
     }
   };
 
@@ -621,14 +680,21 @@ export default function DPDDashboard() {
                       </div>
                       <div className="flex gap-2 shrink-0">
                         <button
+                          onClick={() => handleOpenReviewModal(b)}
+                          className="bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold py-1.5 px-3 rounded-lg flex items-center gap-1 shadow-sm transition-all hover:scale-105"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                          Tinjau &amp; Edit
+                        </button>
+                        <button
                           onClick={() => {
                             setReviewNote('Diterima dan dipublikasikan secara langsung.');
                             handleReviewBerita(b.id, 'published');
                           }}
-                          className="bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold py-1.5 px-3 rounded-lg flex items-center gap-1"
+                          className="bg-emerald-600 hover:bg-emerald-750 text-white text-[11px] font-bold py-1.5 px-3 rounded-lg flex items-center gap-1"
                         >
                           <ThumbsUp className="w-3 h-3" />
-                          Setujui
+                          Setujui Cepat
                         </button>
                         <button
                           onClick={() => {
@@ -639,6 +705,13 @@ export default function DPDDashboard() {
                         >
                           <ThumbsDown className="w-3 h-3" />
                           Tolak / Catatan
+                        </button>
+                        <button
+                          onClick={() => handleDeleteBerita(b.id)}
+                          className="bg-rose-50 hover:bg-rose-100 text-rose-600 text-[11px] font-bold p-1.5 rounded-lg flex items-center justify-center border border-rose-200 transition-all hover:scale-105"
+                          title="Hapus Berita PK secara Permanen"
+                        >
+                          <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
                     </div>
@@ -1062,10 +1135,18 @@ export default function DPDDashboard() {
                             {b.status}
                           </span>
                         </td>
-                        <td className="py-3 text-right space-x-1.5">
+                        <td className="py-3 text-right space-x-2">
+                          <button
+                            onClick={() => handleOpenReviewModal(b)}
+                            className="text-blue-600 hover:text-blue-800 p-1 cursor-pointer"
+                            title="Tinjau &amp; Edit Berita"
+                          >
+                            <Eye className="w-4 h-4 inline" />
+                          </button>
                           <button
                             onClick={() => handleDeleteBerita(b.id)}
-                            className="text-red-500 hover:text-red-700 p-1"
+                            className="text-red-500 hover:text-red-700 p-1 cursor-pointer"
+                            title="Hapus Berita secara Permanen"
                           >
                             <Trash2 className="w-4 h-4 inline" />
                           </button>
@@ -1899,6 +1980,157 @@ export default function DPDDashboard() {
               </button>
             </div>
           </form>
+        )}
+
+        {/* ======================================================== */}
+        {/* MODAL: TINJAU & EDIT BERITA PK DENGAN NAMA EDITOR DPD     */}
+        {/* ======================================================== */}
+        {reviewingBerita && (
+          <div 
+            onClick={() => setReviewingBerita(null)}
+            className="fixed inset-0 bg-slate-950/70 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fade-in cursor-pointer"
+          >
+            <div 
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-3xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col border border-slate-100 cursor-default overflow-hidden animate-scale-up"
+            >
+              {/* Header */}
+              <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                <div>
+                  <span className={`text-[10px] uppercase font-black tracking-wider px-2.5 py-1 rounded-full ${
+                    reviewingBerita.status === 'published' ? 'bg-emerald-100 text-emerald-800' :
+                    reviewingBerita.status === 'pending' ? 'bg-amber-100 text-amber-800 animate-pulse' :
+                    reviewingBerita.status === 'rejected' ? 'bg-red-100 text-red-800' : 'bg-slate-100 text-slate-800'
+                  }`}>
+                    Status Berita: {reviewingBerita.status}
+                  </span>
+                  <h3 className="text-base sm:text-lg font-black text-slate-800 uppercase mt-2">
+                    {reviewingBerita.sumber === 'dpd' ? 'Review & Edit Berita DPD' : 'Tinjau &amp; Edit Naskah Berita PK'}
+                  </h3>
+                  <p className="text-xs text-slate-400 font-semibold mt-1">
+                    Ditulis oleh: <span className="text-blue-600 font-extrabold">{reviewingBerita.penulis}</span> {reviewingBerita.pk_id && `(PK ID: ${reviewingBerita.pk_id})`}
+                  </p>
+                </div>
+                <button 
+                  onClick={() => setReviewingBerita(null)}
+                  className="p-2 hover:bg-slate-200 rounded-full transition-all text-slate-400 hover:text-slate-700"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Scrollable Form Body */}
+              <div className="p-6 sm:p-8 overflow-y-auto space-y-5 flex-1 text-left">
+                {/* Judul */}
+                <div className="space-y-1">
+                  <label className="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider block">
+                    Judul Artikel Berita (Dapat Diedit DPD) <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={editedTitle}
+                    onChange={(e) => setEditedTitle(e.target.value)}
+                    placeholder="Ketik judul tulisan berita..."
+                    className="w-full text-xs p-3 border border-slate-200 bg-slate-50 rounded-xl text-slate-800 font-bold focus:bg-white focus:border-blue-500 transition-all outline-none"
+                    required
+                  />
+                </div>
+
+                {/* Konten Utama */}
+                <div className="space-y-1">
+                  <label className="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider block">
+                    Seluruh Naskah / Isi Berita (Dapat Diubah DPD) <span className="text-red-500">*</span>
+                  </label>
+                  <p className="text-[10px] text-slate-400 font-semibold mb-1">
+                    Harap periksa tata bahasa, ejaan, informasi hoaks, atau unsur SARA sebelum mempublikasikan berita PK ke khalayak luas.
+                  </p>
+                  <textarea
+                    value={editedContent}
+                    onChange={(e) => setEditedContent(e.target.value)}
+                    placeholder="Ketik isi lengkap berita..."
+                    rows={10}
+                    className="w-full text-xs p-3.5 border border-slate-200 bg-slate-50 rounded-xl text-slate-700 font-semibold focus:bg-white focus:border-blue-500 transition-all outline-none"
+                    required
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  {/* Nama Editor DPD */}
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider block">
+                      Nama Editor DPD Yang Memeriksa <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={editorDpdName}
+                      onChange={(e) => setEditorDpdName(e.target.value)}
+                      placeholder="Nama Anda selaku perwakilan / pengurus DPD..."
+                      className="w-full text-xs p-3 border border-slate-200 bg-slate-50 rounded-xl text-slate-800 font-semibold focus:bg-white focus:border-blue-500 transition-all outline-none"
+                      required
+                    />
+                    <span className="text-[9px] text-slate-400 block font-semibold leading-relaxed">
+                      Akan dicatat dan ditampilkan secara transparan sebagai editor pendamping naskah PK di halaman depan.
+                    </span>
+                  </div>
+
+                  {/* Catatan Alasan Perbaikan */}
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider block">
+                      Catatan Masukan Alasan Penolakan (Hanya jika menolak)
+                    </label>
+                    <textarea
+                      value={reviewNote}
+                      onChange={(e) => setReviewNote(e.target.value)}
+                      placeholder="Ketik catatan perbaikan di sini jika Anda bermaksud menolak draf berita PK untuk direvisi..."
+                      rows={3}
+                      className="w-full text-xs p-2.5 border border-slate-200 bg-slate-50 rounded-xl text-slate-600 font-semibold focus:bg-white transition-all outline-none"
+                    />
+                  </div>
+                </div>
+
+                {/* Thumbnail URL */}
+                <div className="border-t border-slate-100 pt-4">
+                  <ImageUploader
+                    value={editedThumbnailUrl}
+                    onChange={(url) => setEditedThumbnailUrl(url)}
+                    label="Gambar Utama Banner Berita (Thumbnail)"
+                  />
+                </div>
+              </div>
+
+              {/* Footer Actions */}
+              <div className="p-5 border-t border-slate-100 bg-slate-50 flex flex-wrap gap-2 justify-end items-center">
+                <button
+                  type="button"
+                  onClick={() => setReviewingBerita(null)}
+                  className="text-xs font-bold px-4 py-2.5 bg-slate-200 text-slate-600 hover:bg-slate-300 rounded-xl cursor-pointer"
+                >
+                  Batal
+                </button>
+
+                {reviewingBerita.status === 'pending' && (
+                  <button
+                    type="button"
+                    onClick={() => handleRejectWithNote(reviewNote || 'Draf berita perlu direvisi oleh pengurus PK.')}
+                    className="text-xs font-bold px-4 py-2.5 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded-xl flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <ThumbsDown className="w-3.5 h-3.5" />
+                    Tolak &amp; Beri Masukan
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  onClick={handleSaveAndPublishPKBerita}
+                  disabled={!editedTitle.trim() || !editedContent.trim() || !editorDpdName.trim()}
+                  className="text-xs bg-emerald-600 hover:bg-emerald-775 text-white font-extrabold px-6 py-2.5 rounded-xl shadow-md cursor-pointer flex items-center gap-1.5 hover:scale-[1.02] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Check className="w-3.5 h-3.5" />
+                  {reviewingBerita.status === 'pending' ? 'Simpan, Setujui & Terbit' : 'Simpan Perubahan'}
+                </button>
+              </div>
+            </div>
+          </div>
         )}
 
       </main>

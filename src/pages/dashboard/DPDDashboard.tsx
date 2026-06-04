@@ -26,7 +26,9 @@ import {
   AlertCircle,
   Home,
   LogOut,
-  Eye
+  Eye,
+  LayoutGrid,
+  List
 } from 'lucide-react';
 import { useAuthStore } from '@/src/store/authStore';
 import { dbService } from '@/src/lib/db';
@@ -96,6 +98,7 @@ export default function DPDDashboard() {
   });
 
   const [pkModalOpen, setPkModalOpen] = useState(false);
+  const [pkViewMode, setPkViewMode] = useState<'grid' | 'list'>('grid');
   const [agendaModalOpen, setAgendaModalOpen] = useState(false);
   const [umkmModalOpen, setUmkmModalOpen] = useState(false);
 
@@ -1366,6 +1369,34 @@ export default function DPDDashboard() {
               <div className="flex flex-col sm:flex-row justify-between sm:items-center border-b border-slate-100 pb-3 mb-4 gap-3">
                 <h3 className="text-sm font-extrabold uppercase tracking-widest text-slate-800">Daftar Wilayah Resmi PK FKP Kabupaten</h3>
                 <div className="flex flex-wrap items-center gap-2">
+                  {/* View Toggles */}
+                  <div className="flex items-center bg-slate-100 rounded-full p-0.5 border border-slate-200/50 mr-1 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setPkViewMode('grid')}
+                      className={`p-1.5 rounded-full transition-all duration-200 ${
+                        pkViewMode === 'grid' 
+                          ? 'bg-white text-blue-600 shadow-sm' 
+                          : 'text-slate-500 hover:text-slate-800'
+                      }`}
+                      title="Tampilan Grid Kartu"
+                    >
+                      <LayoutGrid className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPkViewMode('list')}
+                      className={`p-1.5 rounded-full transition-all duration-200 ${
+                        pkViewMode === 'list' 
+                          ? 'bg-white text-blue-600 shadow-sm' 
+                          : 'text-slate-500 hover:text-slate-800'
+                      }`}
+                      title="Tampilan Tabel List"
+                    >
+                      <List className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
                   <button
                     type="button"
                     onClick={downloadExcelTemplate}
@@ -1410,44 +1441,105 @@ export default function DPDDashboard() {
                 </div>
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {pks.map((p) => (
-                  <div key={p.id} className="p-4 border border-slate-100 rounded-xl space-y-3 flex flex-col justify-between hover:border-blue-100 transition-colors bg-slate-50/50">
-                    <div>
-                      <div className="flex justify-between items-start">
-                        <h4 className="text-xs font-extrabold text-slate-800 uppercase">Kec. {p.nama_kecamatan}</h4>
-                        <span className={`text-[9px] font-bold px-2 py-0.5 rounded ${
-                          p.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                        }`}>
-                          {p.is_active ? 'Aktif' : 'Beku'}
-                        </span>
+              {pkViewMode === 'grid' ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {pks.map((p) => (
+                    <div key={p.id} className="p-4 border border-slate-100 rounded-xl space-y-3 flex flex-col justify-between hover:border-blue-100 transition-colors bg-slate-50/50">
+                      <div>
+                        <div className="flex justify-between items-start">
+                          <h4 className="text-xs font-extrabold text-slate-800 uppercase">Kec. {p.nama_kecamatan}</h4>
+                          <span className={`text-[9px] font-bold px-2 py-0.5 rounded ${
+                            p.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                          }`}>
+                            {p.is_active ? 'Aktif' : 'Beku'}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-slate-400 font-bold block mt-1">Ketua: {p.nama_ketua}</p>
+                        <p className="text-[10px] text-slate-400 font-semibold block truncate mt-0.5">Email: {p.email || 'Belum diatur'}</p>
+                        <p className="text-[10px] text-slate-450 font-semibold block truncate mt-0.5">Sandi: {p.password || 'sandi123'}</p>
                       </div>
-                      <p className="text-[10px] text-slate-400 font-bold block mt-1">Ketua: {p.nama_ketua}</p>
-                      <p className="text-[10px] text-slate-400 font-semibold block truncate mt-0.5">Email: {p.email || 'Belum diatur'}</p>
-                      <p className="text-[10px] text-slate-450 font-semibold block truncate mt-0.5">Sandi: {p.password || 'sandi123'}</p>
+
+                      <div className="flex justify-end gap-1.5 border-t border-slate-200/50 pt-2 text-[10px] font-bold">
+                        <button
+                          onClick={() => {
+                            setEditingPK(p);
+                            setNewPK(p);
+                            setPkModalOpen(true);
+                          }}
+                          className="bg-white border border-slate-200 text-slate-700 hover:text-blue-600 px-3 py-1 rounded-md"
+                        >
+                          <Edit3 className="w-3 h-3 inline mr-0.5" /> Edit
+                        </button>
+                        <button
+                          onClick={() => handleDeletePK(p.id)}
+                          className="bg-white border border-slate-200 text-red-600 hover:bg-red-50 px-3 py-1 rounded-md"
+                        >
+                          <Trash2 className="w-3 h-3 inline mr-0.5" /> Hapus
+                        </button>
+                      </div>
                     </div>
- 
-                    <div className="flex justify-end gap-1.5 border-t border-slate-200/50 pt-2 text-[10px] font-bold">
-                      <button
-                        onClick={() => {
-                          setEditingPK(p);
-                          setNewPK(p);
-                          setPkModalOpen(true);
-                        }}
-                        className="bg-white border border-slate-200 text-slate-700 hover:text-blue-600 px-3 py-1 rounded-md"
-                      >
-                        <Edit3 className="w-3 h-3 inline mr-0.5" /> Edit
-                      </button>
-                      <button
-                        onClick={() => handleDeletePK(p.id)}
-                        className="bg-white border border-slate-200 text-red-600 hover:bg-red-50 px-3 py-1 rounded-md"
-                      >
-                        <Trash2 className="w-3 h-3 inline mr-0.5" /> Hapus
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="overflow-x-auto border border-slate-200/60 rounded-xl max-w-full">
+                  <table className="w-full text-left border-collapse min-w-[700px]">
+                    <thead>
+                      <tr className="bg-slate-50 border-b border-slate-150 text-[10px] font-extrabold uppercase tracking-wider text-slate-500">
+                        <th className="py-3 px-4">Nama Kecamatan</th>
+                        <th className="py-3 px-4">Nama Ketua</th>
+                        <th className="py-3 px-4">Email</th>
+                        <th className="py-3 px-4">Kata Sandi</th>
+                        <th className="py-3 px-4 text-center">Status</th>
+                        <th className="py-3 px-4 text-right">Aksi Keanggotaan</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 text-xs font-semibold text-slate-700">
+                      {pks.map((p) => (
+                        <tr key={p.id} className="hover:bg-slate-50/50 transition-colors">
+                          <td className="py-3.5 px-4 font-bold text-slate-900 uppercase">Kec. {p.nama_kecamatan}</td>
+                          <td className="py-3.5 px-4 text-slate-600">{p.nama_ketua || 'Belum diisi'}</td>
+                          <td className="py-3.5 px-4 text-slate-500 font-mono text-[11px]">{p.email || '-'}</td>
+                          <td className="py-3.5 px-4 text-rose-600 font-mono text-[11px]">{p.password || 'sandi123'}</td>
+                          <td className="py-3.5 px-4 text-center">
+                            <span className={`text-[9px] font-bold px-2 py-0.5 rounded ${
+                              p.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                            }`}>
+                              {p.is_active ? 'Aktif' : 'Beku'}
+                            </span>
+                          </td>
+                          <td className="py-3.5 px-4 text-right">
+                            <div className="flex justify-end gap-1.5 text-[10px] font-bold">
+                              <button
+                                onClick={() => {
+                                  setEditingPK(p);
+                                  setNewPK(p);
+                                  setPkModalOpen(true);
+                                }}
+                                className="bg-white border border-slate-200 text-slate-700 hover:text-blue-600 hover:border-blue-200 px-2.5 py-1.5 rounded-lg inline-flex items-center gap-1 transition"
+                              >
+                                <Edit3 className="w-3 h-3" /> Edit
+                              </button>
+                              <button
+                                onClick={() => handleDeletePK(p.id)}
+                                className="bg-white border border-slate-200 text-red-600 hover:bg-red-50 hover:border-red-200 px-2.5 py-1.5 rounded-lg inline-flex items-center gap-1 transition"
+                              >
+                                <Trash2 className="w-3 h-3" /> Hapus
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                      {pks.length === 0 && (
+                        <tr>
+                          <td colSpan={6} className="text-center py-8 text-slate-400 text-xs">
+                            Belum ada PK Kecamatan terdaftar.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
  
             {/* Modal Popup PK Register / Edit */}

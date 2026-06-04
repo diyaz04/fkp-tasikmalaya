@@ -69,7 +69,7 @@ export default function PKDashboard() {
   // CRUD UMKM states
   const [editingUMKM, setEditingUMKM] = useState<UMKM | null>(null);
   const [newUMKM, setNewUMKM] = useState<Partial<UMKM>>({
-    nama_usaha: '', nama_pemilik: '', kategori: 'kuliner', deskripsi: '', produk_jasa: [], foto_url: '', no_whatsapp: '', is_active: true
+    nama_usaha: '', nama_pemilik: '', kategori: 'kuliner', deskripsi: '', produk_jasa: [], foto_url: '', no_whatsapp: '', is_active: true, status: 'pending', has_katalog: false, katalog: []
   });
   const [umkmModalOpen, setUmkmModalOpen] = useState(false);
 
@@ -243,11 +243,15 @@ export default function PKDashboard() {
         no_whatsapp: newUMKM.no_whatsapp || '',
         kecamatan: pk.nama_kecamatan,
         is_active: newUMKM.is_active !== undefined ? newUMKM.is_active : true,
-        created_at: editingUMKM ? editingUMKM.created_at : new Date().toISOString()
+        created_at: editingUMKM ? editingUMKM.created_at : new Date().toISOString(),
+        status: editingUMKM ? (editingUMKM.status || 'pending') : 'pending', // PK submissions are pending approval first (ajuan)
+        has_katalog: newUMKM.has_katalog || false,
+        katalog: newUMKM.katalog || [],
+        catatan_review: editingUMKM ? (editingUMKM.catatan_review || null) : null
       };
       await dbService.saveUMKM(payload);
       setEditingUMKM(null);
-      setNewUMKM({ nama_usaha: '', nama_pemilik: '', kategori: 'kuliner', deskripsi: '', produk_jasa: [], foto_url: '', no_whatsapp: '', is_active: true });
+      setNewUMKM({ nama_usaha: '', nama_pemilik: '', kategori: 'kuliner', deskripsi: '', produk_jasa: [], foto_url: '', no_whatsapp: '', is_active: true, status: 'pending', has_katalog: false, katalog: [] });
       setUmkmModalOpen(false);
       loadLocalPKData();
       triggerSuccess('Data UMKM lokal berhasil disimpan!');
@@ -900,9 +904,7 @@ export default function PKDashboard() {
                 <button
                   onClick={() => {
                     setEditingUMKM(null);
-                    if (!newUMKM.nama_usaha && !newUMKM.nama_pemilik && !newUMKM.deskripsi) {
-                      setNewUMKM({ nama_usaha: '', nama_pemilik: '', kategori: 'kuliner', deskripsi: '', produk_jasa: [], foto_url: '', no_whatsapp: '', is_active: true });
-                    }
+                    setNewUMKM({ nama_usaha: '', nama_pemilik: '', kategori: 'kuliner', deskripsi: '', produk_jasa: [], foto_url: '', no_whatsapp: '', is_active: true, status: 'pending', has_katalog: false, katalog: [] });
                     setUmkmModalOpen(true);
                   }}
                   className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-full text-xs font-bold inline-flex items-center gap-1"
@@ -919,20 +921,35 @@ export default function PKDashboard() {
                       <th className="py-2.5 font-bold uppercase tracking-wider font-extrabold text-[10px]">Nama Usaha</th>
                       <th className="py-2.5 font-bold uppercase tracking-wider font-extrabold text-[10px]">Pemilik</th>
                       <th className="py-2.5 font-bold uppercase tracking-wider font-extrabold text-[10px]">Kategori</th>
+                      <th className="py-2.5 font-bold uppercase tracking-wider font-extrabold text-[10px]">Persetujuan</th>
                       <th className="py-2.5 font-bold uppercase tracking-wider font-extrabold text-[10px] text-right">Aksi</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
                     {umkms.length === 0 ? (
                       <tr>
-                        <td colSpan={4} className="py-4 text-center text-slate-400 font-semibold">Belum ada UMKM terdaftar di Kecamatan Anda</td>
+                        <td colSpan={5} className="py-4 text-center text-slate-400 font-semibold">Belum ada UMKM terdaftar di Kecamatan Anda</td>
                       </tr>
                     ) : (
                       umkms.map((u) => (
                         <tr key={u.id} className="hover:bg-slate-50/50">
-                          <td className="py-3 font-semibold text-slate-800 pr-2">{u.nama_usaha}</td>
+                          <td className="py-3 font-semibold text-slate-800 pr-2">
+                            <div>{u.nama_usaha}</div>
+                            {u.catatan_review && (
+                              <div className="text-[10px] text-red-500 font-medium italic mt-0.5">Catatan DPD: {u.catatan_review}</div>
+                            )}
+                          </td>
                           <td className="py-3">{u.nama_pemilik}</td>
                           <td className="py-3 uppercase tracking-wider text-[10px] font-bold text-slate-400">{u.kategori}</td>
+                          <td className="py-3">
+                            {u.status === 'approved' ? (
+                              <span className="bg-emerald-50 border border-emerald-200 text-emerald-600 text-[9px] font-extrabold px-2 py-0.5 rounded-full uppercase">Disetujui</span>
+                            ) : u.status === 'rejected' ? (
+                              <span className="bg-rose-50 border border-rose-200 text-rose-600 text-[9px] font-extrabold px-2 py-0.5 rounded-full uppercase">Ditolak</span>
+                            ) : (
+                              <span className="bg-amber-50 border border-amber-250 text-amber-600 text-[9px] font-extrabold px-2 py-0.5 rounded-full uppercase">Ajuan (Pending)</span>
+                            )}
+                          </td>
                           <td className="py-3 text-right space-x-1.5 shrink-0">
                             <button
                               onClick={() => {
@@ -1059,6 +1076,131 @@ export default function PKDashboard() {
                         className="w-full text-xs p-2.5 border border-slate-200 bg-slate-50 rounded-lg text-slate-700 font-semibold focus:bg-white"
                         placeholder="Contoh: Tas Kulit Asli, Dompet Kulit Rajapolah"
                       />
+                    </div>
+
+                    {/* PILIHAN KATALOG PRODUK */}
+                    <div className="p-4 border border-slate-200/80 rounded-xl space-y-4 bg-slate-50/50">
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          id="has_katalog"
+                          checked={newUMKM.has_katalog || false}
+                          onChange={(e) => {
+                            const checked = e.target.checked;
+                            setNewUMKM({
+                              ...newUMKM,
+                              has_katalog: checked,
+                              katalog: checked ? (newUMKM.katalog?.length ? newUMKM.katalog : [{ foto_url: '', nama_produk: '', harga: 0, deskripsi: '' }]) : []
+                            });
+                          }}
+                          className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4 cursor-pointer"
+                        />
+                        <label htmlFor="has_katalog" className="text-xs font-bold text-slate-700 cursor-pointer select-none">
+                          Sertakan Katalog Produk?
+                        </label>
+                      </div>
+
+                      {newUMKM.has_katalog && (
+                        <div className="space-y-4 pt-2 border-t border-slate-200 text-xs">
+                          <div className="flex justify-between items-center">
+                            <span className="font-extrabold uppercase text-[10px] text-slate-600">Daftar Produk Katalog ({newUMKM.katalog?.length || 0})</span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const currentKatalog = newUMKM.katalog || [];
+                                setNewUMKM({
+                                  ...newUMKM,
+                                  katalog: [...currentKatalog, { foto_url: '', nama_produk: '', harga: 0, deskripsi: '' }]
+                                });
+                              }}
+                              className="text-[10px] bg-blue-600 hover:bg-blue-700 text-white font-bold px-2 py-1 rounded"
+                            >
+                              + Tambah Produk
+                            </button>
+                          </div>
+
+                          {(newUMKM.katalog || []).length === 0 ? (
+                            <p className="text-[11px] text-slate-400 text-center py-2 italic font-medium">Klik "+ Tambah Produk" untuk menambahkan katalog.</p>
+                          ) : (
+                            <div className="space-y-4 max-h-[300px] overflow-y-auto pr-1">
+                              {(newUMKM.katalog || []).map((prod, idx) => (
+                                <div key={idx} className="p-3 bg-white border border-slate-250 rounded-lg space-y-3 relative shadow-sm">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const updated = (newUMKM.katalog || []).filter((_, pIdx) => pIdx !== idx);
+                                      setNewUMKM({ ...newUMKM, katalog: updated });
+                                    }}
+                                    className="absolute top-2 right-2 text-xs text-red-500 hover:text-red-700 font-bold"
+                                  >
+                                    Hapus
+                                  </button>
+                                  <div className="font-extrabold text-[10px] text-slate-500">PRODUK #{idx + 1}</div>
+
+                                  <div className="grid grid-cols-2 gap-2">
+                                    <div className="space-y-1">
+                                      <label className="text-[9px] font-bold text-slate-500 uppercase">Nama Produk</label>
+                                      <input
+                                        type="text"
+                                        value={prod.nama_produk}
+                                        onChange={(e) => {
+                                          const updated = [...(newUMKM.katalog || [])];
+                                          updated[idx].nama_produk = e.target.value;
+                                          setNewUMKM({ ...newUMKM, katalog: updated });
+                                        }}
+                                        className="w-full text-xs p-2 border border-slate-200 rounded text-slate-700 font-semibold focus:bg-white"
+                                        placeholder="Nama produk"
+                                        required
+                                      />
+                                    </div>
+                                    <div className="space-y-1">
+                                      <label className="text-[9px] font-bold text-slate-500 uppercase">Harga (Rp)</label>
+                                      <input
+                                        type="number"
+                                        value={prod.harga || ''}
+                                        onChange={(e) => {
+                                          const updated = [...(newUMKM.katalog || [])];
+                                          updated[idx].harga = Number(e.target.value);
+                                          setNewUMKM({ ...newUMKM, katalog: updated });
+                                        }}
+                                        className="w-full text-xs p-2 border border-slate-200 rounded text-slate-700 font-semibold focus:bg-white"
+                                        placeholder="Harga"
+                                        required
+                                      />
+                                    </div>
+                                  </div>
+
+                                  <div className="space-y-1">
+                                    <label className="text-[9px] font-bold text-slate-500 uppercase">Deskripsi</label>
+                                    <textarea
+                                      value={prod.deskripsi}
+                                      onChange={(e) => {
+                                        const updated = [...(newUMKM.katalog || [])];
+                                        updated[idx].deskripsi = e.target.value;
+                                        setNewUMKM({ ...newUMKM, katalog: updated });
+                                      }}
+                                      className="w-full text-xs p-2 border border-slate-200 rounded text-slate-700 font-semibold focus:bg-white"
+                                      rows={2}
+                                      placeholder="Deskripsi singkat produk"
+                                      required
+                                    />
+                                  </div>
+
+                                  <ImageUploader
+                                    value={prod.foto_url}
+                                    onChange={(url) => {
+                                      const updated = [...(newUMKM.katalog || [])];
+                                      updated[idx].foto_url = url;
+                                      setNewUMKM({ ...newUMKM, katalog: updated });
+                                    }}
+                                    label="Foto Produk"
+                                  />
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
 
                     <ImageUploader

@@ -230,7 +230,23 @@ const DEFAULT_UMKM: UMKM[] = [
     no_whatsapp: "6281234567890",
     kecamatan: "Singaparna",
     is_active: true,
-    created_at: "2026-02-10T11:00:00Z"
+    created_at: "2026-02-10T11:00:00Z",
+    status: "approved",
+    has_katalog: true,
+    katalog: [
+      {
+        nama_produk: "Kopi Arabika Galunggung 250gr",
+        harga: 65000,
+        deskripsi: "Kopi Arabika asli pegunungan Galunggung dengan tingkat keasaman medium dan rasa buah yang segar.",
+        foto_url: "https://images.unsplash.com/photo-1559056199-641a0ac8b55e?auto=format&fit=crop&w=400&q=80"
+      },
+      {
+        nama_produk: "Fine Robusta Tasik 250gr",
+        harga: 45000,
+        deskripsi: "Kopi Robusta pilihan dengan body tebal dan rasa cokelat kacang yang klasik.",
+        foto_url: "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&w=400&q=80"
+      }
+    ]
   },
   {
     id: "u_2",
@@ -244,7 +260,23 @@ const DEFAULT_UMKM: UMKM[] = [
     no_whatsapp: "6282233445566",
     kecamatan: "Rajapolah",
     is_active: true,
-    created_at: "2026-02-25T03:00:00Z"
+    created_at: "2026-02-25T03:00:00Z",
+    status: "approved",
+    has_katalog: true,
+    katalog: [
+      {
+        nama_produk: "Laundry Basket Mendong",
+        harga: 120000,
+        deskripsi: "Keranjang tempat pakaian kotor yang dianyam dari serat tanaman mendong berkualitas tinggi, awet, dan estetik.",
+        foto_url: "https://images.unsplash.com/photo-1591081658714-f576fb7ea3ed?auto=format&fit=crop&w=400&q=80"
+      },
+      {
+        nama_produk: "Karpet Serat Alam Ø120cm",
+        harga: 250000,
+        deskripsi: "Karpet anyaman melingkar berbahan mendong alami. Sangat cocok diletakkan di ruang tamu atau kamar tidur Anda.",
+        foto_url: "https://images.unsplash.com/photo-1600121848594-d8644e57abab?auto=format&fit=crop&w=400&q=80"
+      }
+    ]
   },
   {
     id: "u_3",
@@ -258,7 +290,9 @@ const DEFAULT_UMKM: UMKM[] = [
     no_whatsapp: "6289988776655",
     kecamatan: "Ciawi",
     is_active: true,
-    created_at: "2026-03-05T09:00:00Z"
+    created_at: "2026-03-05T09:00:00Z",
+    status: "approved",
+    has_katalog: false
   }
 ];
 

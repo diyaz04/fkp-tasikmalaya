@@ -17,6 +17,7 @@ export default function UMKMDirectory() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedKecamatan, setSelectedKecamatan] = useState<string>('all');
+  const [activeUMKM, setActiveUMKM] = useState<UMKM | null>(null);
 
   const categories = [
     { value: 'all', label: 'Semua Kategori' },
@@ -49,10 +50,16 @@ export default function UMKMDirectory() {
 
   // Filter Logic
   const filteredUmkms = umkms.filter((u) => {
+    // Search based on: Business Name, Owner Name, products listed in produk_jasa array, or Catalog Product Names!
+    const matchesCatalogProduct = u.has_katalog && u.katalog && u.katalog.some(prod => 
+      prod.nama_produk.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
     const matchesSearch = 
       u.nama_usaha.toLowerCase().includes(searchQuery.toLowerCase()) ||
       u.nama_pemilik.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (u.produk_jasa && u.produk_jasa.some(p => p.toLowerCase().includes(searchQuery.toLowerCase())));
+      (u.produk_jasa && u.produk_jasa.some(p => p.toLowerCase().includes(searchQuery.toLowerCase()))) ||
+      matchesCatalogProduct;
 
     const matchesCategory = selectedCategory === 'all' || u.kategori === selectedCategory;
     const matchesKecamatan = selectedKecamatan === 'all' || u.pk_id === selectedKecamatan;
@@ -239,13 +246,19 @@ export default function UMKMDirectory() {
                   </div>
                 </div>
 
-                {/* WhatsApp call to action button */}
-                <div className="p-6 pt-0 mt-4">
+                {/* Action buttons stack */}
+                <div className="p-6 pt-0 mt-auto space-y-2 shrink-0">
+                  <button
+                    onClick={() => setActiveUMKM(u)}
+                    className="w-full text-center py-2.5 px-4 text-xs font-bold rounded-full text-slate-700 bg-slate-100 hover:bg-slate-200 flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                  >
+                    Lihat Info & Katalog
+                  </button>
                   <a
                     href={`https://wa.me/${u.no_whatsapp}?text=Halo%20${encodeURIComponent(u.nama_usaha)}%2C%20saya%20tertarik%20dengan%20produk%20Anda%20di%20portal%20FKP%20Kabupaten%20Tasikmalaya.`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-full text-center py-2.5 px-4 text-xs font-bold rounded-full text-white bg-gradient-to-r from-blue-600 to-cyan-500 hover:shadow-md hover:scale-[1.02] hover:-shadow-lg flex items-center justify-center gap-2 transition-all"
+                    className="w-full text-center py-2.5 px-4 text-xs font-bold rounded-full text-white bg-gradient-to-r from-blue-600 to-cyan-500 hover:shadow-md hover:scale-[1.02] flex items-center justify-center gap-2 transition-all"
                   >
                     <Phone className="w-3.5 h-3.5" />
                     Hubungi WhatsApp Usaha
@@ -289,6 +302,172 @@ export default function UMKMDirectory() {
             </div>
           </div>
         </div>
+
+        {/* ==================================== */}
+        {/* MODAL DETAL & KATALOG PRODUK UMKM    */}
+        {/* ==================================== */}
+        {activeUMKM && (
+          <div 
+            onClick={() => setActiveUMKM(null)}
+            className="fixed inset-0 bg-slate-950/75 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fade-in cursor-pointer"
+          >
+            <div 
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto p-6 sm:p-8 space-y-6 sm:space-y-8 border border-slate-100/10 cursor-default"
+            >
+              {/* Header profile */}
+              <div className="flex justify-between items-start gap-4 border-b border-slate-100 pb-4">
+                <div className="space-y-1">
+                  <span className="text-[10px] bg-blue-100 text-blue-700 hover:bg-blue-200 border border-blue-200 px-3 py-1 rounded-full font-bold uppercase tracking-wider">
+                    {activeUMKM.kategori}
+                  </span>
+                  <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 leading-tight pt-1">
+                    {activeUMKM.nama_usaha}
+                  </h2>
+                  <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider">
+                    Pemilik: <span className="text-slate-700 font-bold">{activeUMKM.nama_pemilik}</span> | Kecamatan: <span className="text-slate-700 font-bold">{getKecamatanName(activeUMKM.pk_id)}</span>
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setActiveUMKM(null)}
+                  className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 px-4 py-2 rounded-full font-bold transition-all hover:scale-105 cursor-pointer"
+                >
+                  Tutup
+                </button>
+              </div>
+
+              {/* Business Overview Bento layout */}
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-6 sm:gap-8 items-start">
+                
+                {/* Visual cover card */}
+                <div className="md:col-span-2 rounded-2xl overflow-hidden shadow-sm border border-slate-100 bg-slate-50">
+                  <img 
+                    src={activeUMKM.foto_url || "https://images.unsplash.com/photo-1599490659213-e2b9527bb087?auto=format&fit=crop&w=600&q=80"} 
+                    alt={activeUMKM.nama_usaha} 
+                    className="w-full h-auto max-h-[250px] md:max-h-[350px] object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1599490659213-e2b9527bb087?auto=format&fit=crop&w=600&q=80";
+                    }}
+                  />
+                  <div className="p-4 bg-slate-900 text-white text-xs font-bold flex justify-between items-center">
+                    <span>Hubungi Lewat WA:</span>
+                    <a 
+                      href={`https://wa.me/${activeUMKM.no_whatsapp}`} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="text-cyan-400 hover:underline"
+                    >
+                      +{activeUMKM.no_whatsapp}
+                    </a>
+                  </div>
+                </div>
+
+                {/* Core descriptions */}
+                <div className="md:col-span-3 space-y-4">
+                  <div className="space-y-1.5">
+                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest font-extrabold">Profil Ringkas Bisnis</h4>
+                    <p className="text-sm text-slate-600 font-semibold leading-relaxed font-sans">
+                      {activeUMKM.deskripsi || "Pelaku wirausaha pemuda Tasikmalaya yang berkomitmen menyediakan layanan dan kualitas produk terbaik bagi para pelanggannya."}
+                    </p>
+                  </div>
+
+                  {activeUMKM.produk_jasa && activeUMKM.produk_jasa.length > 0 && (
+                    <div className="space-y-2 border-t border-slate-100 pt-4">
+                      <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest font-extrabold">Keunggulan & Produk Unggulan</h4>
+                      <div className="flex flex-wrap gap-1.5">
+                        {activeUMKM.produk_jasa.map((tag, tIdx) => (
+                          <span 
+                            key={tIdx} 
+                            className="bg-slate-50 border border-slate-200 text-slate-600 font-semibold text-[10px] px-3 py-1 rounded-lg flex items-center gap-1"
+                          >
+                            <CheckCircle className="w-3 h-3 text-emerald-500 shrink-0" />
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+              </div>
+
+              {/* Dynamic Product Catalog Gallery Section */}
+              <div className="border-t border-slate-100 pt-6 sm:pt-8 space-y-4">
+                <div className="flex justify-between items-center pb-2 border-b border-slate-100">
+                  <h3 className="text-sm font-extrabold uppercase tracking-widest text-slate-800 flex items-center gap-1.5">
+                    🛍️ Katalog Menu / Produk Usaha
+                  </h3>
+                  <span className="text-xs text-slate-400 font-bold">
+                    {activeUMKM.has_katalog && activeUMKM.katalog?.length ? `${activeUMKM.katalog.length} Produk Tersedia` : 'Tidak Ada Produk Katalog'}
+                  </span>
+                </div>
+
+                {activeUMKM.has_katalog && activeUMKM.katalog && activeUMKM.katalog.length > 0 ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {activeUMKM.katalog.map((prod, pIdx) => (
+                      <div key={pIdx} className="bg-slate-50/50 rounded-2xl border border-slate-200/60 overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
+                        <div>
+                          {/* Product visual code */}
+                          <div className="h-40 bg-slate-200 relative">
+                            <img 
+                              src={prod.foto_url || "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=400&q=80"} 
+                              alt={prod.nama_produk} 
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=400&q=80";
+                              }}
+                            />
+                            <div className="absolute bottom-2.5 right-2.5 bg-slate-900/80 text-white font-extrabold text-[11px] px-2.5 py-1 rounded-md shadow">
+                              Rp {prod.harga.toLocaleString()}
+                            </div>
+                          </div>
+
+                          {/* Product detailed information */}
+                          <div className="p-4 space-y-1.5">
+                            <h4 className="font-extrabold text-slate-800 text-xs sm:text-sm leading-snug line-clamp-1">{prod.nama_produk}</h4>
+                            <p className="text-[11px] text-slate-500 font-semibold leading-relaxed line-clamp-3">{prod.deskripsi || "Detail produk belum ditambahkan."}</p>
+                          </div>
+                        </div>
+
+                        <div className="p-4 pt-0">
+                          <a
+                            href={`https://wa.me/${activeUMKM.no_whatsapp}?text=Halo%20${encodeURIComponent(activeUMKM.nama_usaha)}%2C%20saya%20tertarik%20dengan%20katalog%20produk%20Anda%3A%20*${encodeURIComponent(prod.nama_produk)}*%20(${encodeURIComponent("Rp " + prod.harga.toLocaleString())})`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="w-full text-center py-2 px-3 bg-white hover:bg-slate-55 border border-slate-250 text-slate-700 font-extrabold text-[10px] sm:text-xs rounded-xl flex items-center justify-center gap-1.5 shadow-sm transition-all"
+                          >
+                            Pesan Produk Lewat WA
+                          </a>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-8 text-center bg-slate-50 border border-slate-200/50 rounded-2xl">
+                    <p className="text-xs text-slate-400 font-bold leading-relaxed">
+                      Wirausaha belum mengunggah produk katalog foto terpisah ke platform. Silakan hubungi langsung via WhatsApp di atas untuk list lengkap katalog produk / jasa yang tersedia!
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Dynamic Footer with Call actions */}
+              <div className="flex gap-2 justify-end pt-5 border-t border-slate-100">
+                <a
+                  href={`https://wa.me/${activeUMKM.no_whatsapp}?text=Halo%20${encodeURIComponent(activeUMKM.nama_usaha)}%2C%20saya%20tertarik%20dengan%20produk%20Anda%20di%20portal%20FKP%20Kabupaten%20Tasikmalaya.`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bg-gradient-to-r from-blue-600 to-cyan-500 hover:shadow-md hover:scale-[1.01] text-white font-extrabold text-xs px-6 py-2.5 rounded-full flex items-center gap-2 transition-all"
+                >
+                  <Phone className="w-3.5 h-3.5" />
+                  Hubungi Toko Sekarang
+                </a>
+              </div>
+
+            </div>
+          </div>
+        )}
 
       </div>
     </div>

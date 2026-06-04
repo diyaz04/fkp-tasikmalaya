@@ -77,6 +77,13 @@ export interface Agenda {
   created_at: string;
 }
 
+export interface ProdukKatalog {
+  foto_url: string;
+  nama_produk: string;
+  harga: number;
+  deskripsi: string;
+}
+
 export interface UMKM {
   id: string;
   pk_id: string; // REFERENCES pk_fkp
@@ -90,6 +97,10 @@ export interface UMKM {
   kecamatan: string;
   is_active: boolean;
   created_at: string;
+  status: 'pending' | 'approved' | 'rejected';
+  catatan_review?: string | null;
+  has_katalog: boolean;
+  katalog?: ProdukKatalog[];
 }
 
 export interface Kontak {

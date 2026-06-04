@@ -89,7 +89,7 @@ export default function DPDDashboard() {
 
   const [editingUMKM, setEditingUMKM] = useState<UMKM | null>(null);
   const [newUMKM, setNewUMKM] = useState<Partial<UMKM>>({
-    nama_usaha: '', nama_pemilik: '', kategori: 'kuliner', deskripsi: '', produk_jasa: [], foto_url: '', no_whatsapp: '', kecamatan: '', is_active: true, pk_id: ''
+    nama_usaha: '', nama_pemilik: '', kategori: 'kuliner', deskripsi: '', produk_jasa: [], foto_url: '', no_whatsapp: '', kecamatan: '', is_active: true, pk_id: '', status: 'approved', has_katalog: false, katalog: []
   });
 
   const [creatingBerita, setCreatingBerita] = useState(false);
@@ -579,11 +579,15 @@ export default function DPDDashboard() {
         no_whatsapp: newUMKM.no_whatsapp || '',
         kecamatan: pks.find(p => p.id === newUMKM.pk_id)?.nama_kecamatan || 'Singaparna',
         is_active: newUMKM.is_active !== undefined ? newUMKM.is_active : true,
-        created_at: editingUMKM ? editingUMKM.created_at : new Date().toISOString()
+        created_at: editingUMKM ? editingUMKM.created_at : new Date().toISOString(),
+        status: editingUMKM ? (editingUMKM.status || 'approved') : 'approved', // Direct DPD entries are auto-approved
+        has_katalog: newUMKM.has_katalog || false,
+        katalog: newUMKM.katalog || [],
+        catatan_review: editingUMKM ? (editingUMKM.catatan_review || null) : null
       };
       await dbService.saveUMKM(payload);
       setEditingUMKM(null);
-      setNewUMKM({ nama_usaha: '', nama_pemilik: '', kategori: 'kuliner', deskripsi: '', produk_jasa: [], foto_url: '', no_whatsapp: '', kecamatan: '', is_active: true, pk_id: '' });
+      setNewUMKM({ nama_usaha: '', nama_pemilik: '', kategori: 'kuliner', deskripsi: '', produk_jasa: [], foto_url: '', no_whatsapp: '', kecamatan: '', is_active: true, pk_id: '', status: 'approved', has_katalog: false, katalog: [] });
       setUmkmModalOpen(false);
       loadAllDatabase();
       triggerSuccess('Data UMKM wirausaha disimpan!');
@@ -592,6 +596,42 @@ export default function DPDDashboard() {
       let errMsg = err.message || String(err);
       try { const parsed = JSON.parse(err.message); if (parsed.error) errMsg = parsed.error; } catch {}
       alert(`Gagal menyimpan UMKM: ${errMsg}`);
+    }
+  };
+
+  const handleApproveUMKM = async (umkm: UMKM) => {
+    try {
+      const payload: UMKM = {
+        ...umkm,
+        status: 'approved',
+        is_active: true,
+        catatan_review: null
+      };
+      await dbService.saveUMKM(payload);
+      loadAllDatabase();
+      triggerSuccess(`UMKM "${umkm.nama_usaha}" berhasil disetujui untuk dipublikasikan!`);
+    } catch (err) {
+      console.error(err);
+      alert("Gagal menyetujui UMKM");
+    }
+  };
+
+  const handleRejectUMKM = async (umkm: UMKM) => {
+    const reason = prompt(`Masukkan alasan penolakan review untuk "${umkm.nama_usaha}":`);
+    if (reason === null) return; // cancelled
+    try {
+      const payload: UMKM = {
+        ...umkm,
+        status: 'rejected',
+        is_active: false,
+        catatan_review: reason.trim() || 'Revisi berkas diperlukan'
+      };
+      await dbService.saveUMKM(payload);
+      loadAllDatabase();
+      triggerSuccess(`UMKM "${umkm.nama_usaha}" telah ditolak dengan catatan.`);
+    } catch (err) {
+      console.error(err);
+      alert("Gagal menolak pengajuan UMKM");
     }
   };
 
@@ -1914,18 +1954,85 @@ export default function DPDDashboard() {
         {activeTab === 'umkm' && (
           <div className="space-y-6 animate-fade-in" id="dpd-umkm-subsection">
             
+            {/* 1. SEKSI REVIEW AJUAN UMKM DARI KECAMATAN / PK */}
+            {umkms.filter(u => u.status === 'pending' || !u.status).length > 0 && (
+              <div className="bg-amber-50/75 border border-amber-200 p-6 rounded-2xl shadow-sm text-slate-600 text-xs font-semibold">
+                <div className="border-b border-amber-200 pb-3 mb-4 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse" />
+                    <h3 className="text-sm font-extrabold uppercase tracking-widest text-amber-800">Review Ajuan UMKM Baru (Persetujuan DPD)</h3>
+                  </div>
+                  <span className="bg-amber-100/80 text-amber-800 font-extrabold px-2.5 py-1 rounded-full uppercase tracking-wider text-[9px] border border-amber-200">
+                    {umkms.filter(u => u.status === 'pending' || !u.status).length} Menunggu Review
+                  </span>
+                </div>
+
+                <div className="space-y-4">
+                  {umkms.filter(u => u.status === 'pending' || !u.status).map((u) => (
+                    <div key={u.id} className="p-5 bg-white border border-amber-100 rounded-xl shadow-sm grid grid-cols-1 md:grid-cols-4 gap-4 items-start font-sans">
+                      <div className="md:col-span-2 space-y-2">
+                        <div className="flex gap-2 items-center">
+                          <span className="font-extrabold text-sm text-slate-800 font-sans">{u.nama_usaha}</span>
+                          <span className="text-[9px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-extrabold uppercase">{u.kategori}</span>
+                        </div>
+                        <p className="text-slate-500 text-[11px] font-medium leading-relaxed">{u.deskripsi}</p>
+                        <div className="grid grid-cols-2 gap-2 pt-2 text-[10px] text-slate-400 font-mono">
+                          <div>Owner: <span className="text-slate-700 font-semibold">{u.nama_pemilik}</span></div>
+                          <div>Kecamatan: <span className="text-slate-700 font-semibold">{u.kecamatan}</span></div>
+                          <div>WhatsApp: <span className="text-slate-700 font-semibold">{u.no_whatsapp}</span></div>
+                          <div>Katalog?: <span className={`font-semibold ${u.has_katalog ? 'text-cyan-600' : 'text-slate-500'}`}>{u.has_katalog ? `Ya (${u.katalog?.length || 0} produk)` : 'Tidak'}</span></div>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        {u.has_katalog && u.katalog && u.katalog.length > 0 ? (
+                          <div className="p-2.5 border border-slate-100 rounded-lg bg-slate-50 max-h-[100px] overflow-y-auto space-y-1">
+                            <div className="text-[9px] text-slate-400 uppercase font-extrabold border-b pb-0.5 mb-1">Daftar Produk Katalog:</div>
+                            {u.katalog.map((prod, pIdx) => (
+                              <div key={pIdx} className="text-[10px] text-slate-600 truncate flex justify-between gap-1">
+                                <span>- {prod.nama_produk}</span>
+                                <span className="font-bold text-slate-700 shrink-0">Rp {prod.harga.toLocaleString()}</span>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-[10px] text-slate-400 italic py-3 text-center bg-slate-50 border border-dashed border-slate-200 rounded-lg">Tidak menyertakan katalog produk</div>
+                        )}
+                      </div>
+
+                      <div className="flex md:flex-col justify-end items-end gap-2 h-full pt-2 md:pt-0 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => handleApproveUMKM(u)}
+                          className="w-full text-center bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2 rounded-lg text-xs transition-colors cursor-pointer"
+                        >
+                          Setujui & Terbitkan
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleRejectUMKM(u)}
+                          className="w-full text-center bg-rose-50 border border-rose-200 hover:bg-rose-100 text-rose-600 font-bold px-4 py-2 rounded-lg text-xs transition-colors cursor-pointer"
+                        >
+                          Tolak & Revisi
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* 2. DAFTAR DIREKTORI UTAMA */}
             <div className="bg-white border border-slate-200/50 p-6 rounded-2xl shadow w-full text-slate-600 text-xs font-semibold">
               <div className="flex justify-between items-center border-b border-slate-100 pb-3 mb-4">
-                <h3 className="text-sm font-extrabold uppercase tracking-widest text-slate-800">Anggota Direktori Wirausaha</h3>
+                <h3 className="text-sm font-extrabold uppercase tracking-widest text-slate-800">Direktori Wirausaha Utama (Semua Kecamatan)</h3>
                 <button
                   onClick={() => {
                     setEditingUMKM(null);
-                    if (!newUMKM.nama_usaha && !newUMKM.nama_pemilik && !newUMKM.deskripsi) {
-                      setNewUMKM({ nama_usaha: '', nama_pemilik: '', kategori: 'kuliner', deskripsi: '', produk_jasa: [], foto_url: '', no_whatsapp: '', kecamatan: '', is_active: true, pk_id: '' });
-                    }
+                    setNewUMKM({ nama_usaha: '', nama_pemilik: '', kategori: 'kuliner', deskripsi: '', produk_jasa: [], foto_url: '', no_whatsapp: '', kecamatan: '', is_active: true, pk_id: '', status: 'approved', has_katalog: false, katalog: [] });
                     setUmkmModalOpen(true);
                   }}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-full text-xs font-bold inline-flex items-center gap-1"
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-full text-xs font-bold inline-flex items-center gap-1 cursor-pointer transition-all hover:scale-105"
                 >
                   <Plus className="w-4 h-4" />
                   Tambah UMKM Baru
@@ -1933,29 +2040,44 @@ export default function DPDDashboard() {
               </div>
               
               <div className="overflow-x-auto">
-                <table className="w-full text-left font-semibold">
+                <table className="w-full text-left font-semibold text-xs">
                   <thead>
                     <tr className="border-b border-slate-100 text-slate-400">
                       <th className="py-2.5 font-bold uppercase tracking-wider font-extrabold text-[10px]">Nama Usaha</th>
                       <th className="py-2.5 font-bold uppercase tracking-wider font-extrabold text-[10px]">Pemilik</th>
                       <th className="py-2.5 font-bold uppercase tracking-wider font-extrabold text-[10px]">Kecamatan</th>
                       <th className="py-2.5 font-bold uppercase tracking-wider font-extrabold text-[10px]">Kategori</th>
+                      <th className="py-2.5 font-bold uppercase tracking-wider font-extrabold text-[10px]">Persetujuan</th>
                       <th className="py-2.5 font-bold uppercase tracking-wider font-extrabold text-[10px] text-right">Aksi</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
                     {umkms.length === 0 ? (
                       <tr>
-                        <td colSpan={5} className="py-4 text-center text-slate-400 font-semibold">Belum ada UMKM terdaftar</td>
+                        <td colSpan={6} className="py-4 text-center text-slate-400 font-semibold">Belum ada UMKM terdaftar</td>
                       </tr>
                     ) : (
                       umkms.map((u) => (
                         <tr key={u.id} className="hover:bg-slate-50/50">
-                          <td className="py-3 font-semibold text-slate-800 pr-2">{u.nama_usaha}</td>
+                          <td className="py-3 font-semibold text-slate-800 pr-2">
+                            <div>{u.nama_usaha}</div>
+                            {u.catatan_review && (
+                              <div className="text-[10px] text-red-500 font-medium italic mt-0.5">Catatan: {u.catatan_review}</div>
+                            )}
+                          </td>
                           <td className="py-3">{u.nama_pemilik}</td>
                           <td className="py-3">{u.kecamatan}</td>
                           <td className="py-3 uppercase tracking-wider text-[10px] font-bold text-slate-500">{u.kategori}</td>
-                          <td className="py-3 text-right space-x-1.5 shrink-0">
+                          <td className="py-3 font-semibold">
+                            {u.status === 'approved' || !u.status ? (
+                              <span className="bg-emerald-50 border border-emerald-250 text-emerald-600 text-[9px] font-extrabold px-2 py-0.5 rounded-full uppercase">Disetujui</span>
+                            ) : u.status === 'rejected' ? (
+                              <span className="bg-rose-50 border border-rose-250 text-rose-600 text-[9px] font-extrabold px-2 py-0.5 rounded-full uppercase">Ditolak</span>
+                            ) : (
+                              <span className="bg-amber-50 border border-amber-250 text-amber-600 text-[9px] font-extrabold px-2 py-0.5 rounded-full uppercase">Ajuan (Pending)</span>
+                            )}
+                          </td>
+                          <td className="py-3 text-right space-x-1.5 shrink-0 whitespace-nowrap">
                             <button
                               onClick={() => {
                                 setEditingUMKM(u);
@@ -2096,6 +2218,131 @@ export default function DPDDashboard() {
                         className="w-full text-xs p-2.5 border border-slate-200 bg-slate-50 rounded-lg text-slate-700 font-semibold focus:bg-white"
                         placeholder="Contoh: Kopi Bubuk Galunggung, Cold Brew Botol"
                       />
+                    </div>
+
+                    {/* PILIHAN KATALOG PRODUK */}
+                    <div className="p-4 border border-slate-200/85 rounded-xl space-y-4 bg-slate-50/55">
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          id="has_katalog"
+                          checked={newUMKM.has_katalog || false}
+                          onChange={(e) => {
+                            const checked = e.target.checked;
+                            setNewUMKM({
+                              ...newUMKM,
+                              has_katalog: checked,
+                              katalog: checked ? (newUMKM.katalog?.length ? newUMKM.katalog : [{ foto_url: '', nama_produk: '', harga: 0, deskripsi: '' }]) : []
+                            });
+                          }}
+                          className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4 cursor-pointer"
+                        />
+                        <label htmlFor="has_katalog" className="text-xs font-bold text-slate-700 cursor-pointer select-none">
+                          Sertakan Katalog Produk?
+                        </label>
+                      </div>
+
+                      {newUMKM.has_katalog && (
+                        <div className="space-y-4 pt-2 border-t border-slate-200 text-xs">
+                          <div className="flex justify-between items-center">
+                            <span className="font-extrabold uppercase text-[10px] text-slate-600">Daftar Produk Katalog ({newUMKM.katalog?.length || 0})</span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const currentKatalog = newUMKM.katalog || [];
+                                setNewUMKM({
+                                  ...newUMKM,
+                                  katalog: [...currentKatalog, { foto_url: '', nama_produk: '', harga: 0, deskripsi: '' }]
+                                });
+                              }}
+                              className="text-[10px] bg-blue-600 hover:bg-blue-700 text-white font-bold px-2 py-1 rounded"
+                            >
+                              + Tambah Produk
+                            </button>
+                          </div>
+
+                          {(newUMKM.katalog || []).length === 0 ? (
+                            <p className="text-[11px] text-slate-400 text-center py-2 italic font-medium">Klik "+ Tambah Produk" untuk menambahkan katalog.</p>
+                          ) : (
+                            <div className="space-y-4 max-h-[300px] overflow-y-auto pr-1">
+                              {(newUMKM.katalog || []).map((prod, idx) => (
+                                <div key={idx} className="p-3 bg-white border border-slate-250 rounded-lg space-y-3 relative shadow-sm">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const updated = (newUMKM.katalog || []).filter((_, pIdx) => pIdx !== idx);
+                                      setNewUMKM({ ...newUMKM, katalog: updated });
+                                    }}
+                                    className="absolute top-2 right-2 text-xs text-red-500 hover:text-red-700 font-bold"
+                                  >
+                                    Hapus
+                                  </button>
+                                  <div className="font-extrabold text-[10px] text-slate-500">PRODUK #{idx + 1}</div>
+
+                                  <div className="grid grid-cols-2 gap-2">
+                                    <div className="space-y-1">
+                                      <label className="text-[9px] font-bold text-slate-500 uppercase">Nama Produk</label>
+                                      <input
+                                        type="text"
+                                        value={prod.nama_produk}
+                                        onChange={(e) => {
+                                          const updated = [...(newUMKM.katalog || [])];
+                                          updated[idx].nama_produk = e.target.value;
+                                          setNewUMKM({ ...newUMKM, katalog: updated });
+                                        }}
+                                        className="w-full text-xs p-2 border border-slate-200 rounded text-slate-700 font-semibold focus:bg-white"
+                                        placeholder="Nama produk"
+                                        required
+                                      />
+                                    </div>
+                                    <div className="space-y-1">
+                                      <label className="text-[9px] font-bold text-slate-500 uppercase">Harga (Rp)</label>
+                                      <input
+                                        type="number"
+                                        value={prod.harga || ''}
+                                        onChange={(e) => {
+                                          const updated = [...(newUMKM.katalog || [])];
+                                          updated[idx].harga = Number(e.target.value);
+                                          setNewUMKM({ ...newUMKM, katalog: updated });
+                                        }}
+                                        className="w-full text-xs p-2 border border-slate-200 rounded text-slate-700 font-semibold focus:bg-white"
+                                        placeholder="Harga"
+                                        required
+                                      />
+                                    </div>
+                                  </div>
+
+                                  <div className="space-y-1">
+                                    <label className="text-[9px] font-bold text-slate-500 uppercase">Deskripsi</label>
+                                    <textarea
+                                      value={prod.deskripsi}
+                                      onChange={(e) => {
+                                        const updated = [...(newUMKM.katalog || [])];
+                                        updated[idx].deskripsi = e.target.value;
+                                        setNewUMKM({ ...newUMKM, katalog: updated });
+                                      }}
+                                      className="w-full text-xs p-2 border border-slate-200 rounded text-slate-700 font-semibold focus:bg-white"
+                                      rows={2}
+                                      placeholder="Deskripsi singkat produk"
+                                      required
+                                    />
+                                  </div>
+
+                                  <ImageUploader
+                                    value={prod.foto_url}
+                                    onChange={(url) => {
+                                      const updated = [...(newUMKM.katalog || [])];
+                                      updated[idx].foto_url = url;
+                                      setNewUMKM({ ...newUMKM, katalog: updated });
+                                    }}
+                                    label="Foto Produk"
+                                  />
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
 
                     <ImageUploader

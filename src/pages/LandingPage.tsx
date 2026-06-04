@@ -17,7 +17,8 @@ import {
   TrendingUp,
   MessageSquare,
   ChevronRight,
-  ShieldCheck
+  ShieldCheck,
+  Search
 } from 'lucide-react';
 import { dbService, DEFAULT_PROFIL } from '@/src/lib/db';
 import { ProfilOrganisasi, PKFKP, Berita, Agenda, Kontak } from '@/src/types';
@@ -32,6 +33,8 @@ export default function LandingPage() {
   const [agendas, setAgendas] = useState<Agenda[]>([]);
   const [kontak, setKontak] = useState<Kontak | null>(null);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [limitCount, setLimitCount] = useState(6);
 
   function stripHtml(html: string) {
     if (!html) return '';
@@ -551,85 +554,172 @@ export default function LandingPage() {
             </span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-            {pks.map((pk) => (
-              <div 
-                key={pk.id}
-                onClick={() => navigate(`/pk/${pk.id}`)}
-                className="bg-white rounded-2xl shadow-md border border-slate-100 overflow-hidden group hover:-translate-y-1.5 hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between"
-              >
-                <div>
-                  <div className="relative h-48 overflow-hidden bg-slate-100">
-                    <img
-                      src={pk.foto_ketua_url || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80"}
-                      alt={pk.nama_ketua}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1549813069-f9dfe6190db2?auto=format&fit=crop&w=400&q=80';
-                      }}
-                    />
-                    <div className="absolute top-3 left-3 bg-slate-900/80 text-white text-[11px] font-mono tracking-widest uppercase px-3 py-1 rounded-full backdrop-blur-sm font-bold">
-                      Kec. {pk.nama_kecamatan}
-                    </div>
-                  </div>
-                  
-                  <div className="p-6">
-                    <h3 className="text-base sm:text-lg font-bold text-slate-900 group-hover:text-blue-600 transition-colors">
-                      PK FKP {pk.nama_kecamatan}
-                    </h3>
-                    <p className="text-xs text-slate-400 font-bold mb-3">Ketua: {pk.nama_ketua}</p>
-                    <p className="text-xs text-slate-500 leading-relaxed line-clamp-3">
-                      {pk.deskripsi || "Berkomitmen memajukan potensi industri kreatif dan mendirikan inkubator kewirausahaan pemuda."}
-                    </p>
+          {/* Controls Panel (Search & Limit) */}
+          <div className="bg-slate-50 border border-slate-100 rounded-2xl p-6 mb-8 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 animate-fade-in">
+            {/* Search Input */}
+            <div className="relative flex-1">
+              <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-slate-400">
+                <Search className="w-4 h-4" />
+              </span>
+              <input
+                type="text"
+                placeholder="Cari berdasarkan kecamatan, ketua, sekretaris, bendahara, atau deskripsi..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 shadow-sm transition"
+              />
+            </div>
 
-                    {/* Sekretaris & Bendahara if filled */}
-                    {(pk.nama_sekretaris || pk.nama_bendahara) && (
-                      <div className="mt-4 pt-3 border-t border-slate-100/80 grid grid-cols-2 gap-2 text-[11px] font-semibold text-slate-500">
-                        {pk.nama_sekretaris && (
-                          <div className="flex items-center gap-1.5 min-w-0">
-                            <div className="w-6 h-6 rounded-full bg-slate-100 overflow-hidden shrink-0 border border-slate-200/65">
-                              <img
-                                src={pk.foto_sekretaris_url || 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80'}
-                                alt={pk.nama_sekretaris}
-                                className="w-full h-full object-cover"
-                              />
-                            </div>
-                            <div className="truncate">
-                              <span className="block text-[8px] text-slate-400 font-extrabold uppercase tracking-wider leading-none">Sekretaris</span>
-                              <span className="block text-slate-700 font-extrabold truncate leading-tight mt-0.5">{pk.nama_sekretaris}</span>
-                            </div>
-                          </div>
-                        )}
-                        {pk.nama_bendahara && (
-                          <div className="flex items-center gap-1.5 min-w-0">
-                            <div className="w-6 h-6 rounded-full bg-slate-100 overflow-hidden shrink-0 border border-slate-200/65">
-                              <img
-                                src={pk.foto_bendahara_url || 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=150&q=80'}
-                                alt={pk.nama_bendahara}
-                                className="w-full h-full object-cover"
-                              />
-                            </div>
-                            <div className="truncate">
-                              <span className="block text-[8px] text-slate-400 font-extrabold uppercase tracking-wider leading-none">Bendahara</span>
-                              <span className="block text-slate-700 font-extrabold truncate leading-tight mt-0.5">{pk.nama_bendahara}</span>
-                            </div>
+            {/* Custom Limit and Statistics */}
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-extrabold text-slate-500 uppercase tracking-wider">Tampilkan:</span>
+                <select
+                  value={limitCount}
+                  onChange={(e) => setLimitCount(Number(e.target.value))}
+                  className="bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 shadow-sm transition cursor-pointer"
+                >
+                  <option value={3}>3 PK Kecamatan</option>
+                  <option value={6}>6 PK Kecamatan (Default)</option>
+                  <option value={12}>12 PK Kecamatan</option>
+                  <option value={24}>24 PK Kecamatan</option>
+                  <option value={-1}>Tampilkan Semua</option>
+                </select>
+              </div>
+
+              {/* Status information */}
+              {(() => {
+                const filtered = pks.filter(pk => {
+                  const query = searchQuery.toLowerCase();
+                  return (
+                    pk.nama_kecamatan.toLowerCase().includes(query) ||
+                    (pk.nama_ketua && pk.nama_ketua.toLowerCase().includes(query)) ||
+                    (pk.nama_sekretaris && pk.nama_sekretaris.toLowerCase().includes(query)) ||
+                    (pk.nama_bendahara && pk.nama_bendahara.toLowerCase().includes(query)) ||
+                    (pk.deskripsi && pk.deskripsi.toLowerCase().includes(query))
+                  );
+                });
+                const displayCount = limitCount === -1 ? filtered.length : Math.min(limitCount, filtered.length);
+                return (
+                  <div className="text-[11px] font-extrabold text-slate-500 bg-slate-100/80 px-3.5 py-2.5 rounded-xl border border-slate-200/50">
+                    Menampilkan <span className="text-blue-600">{displayCount}</span> dari <span className="text-slate-700">{filtered.length}</span> PK yang cocok
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
+
+          {(() => {
+            const filtered = pks.filter(pk => {
+              const query = searchQuery.toLowerCase();
+              return (
+                pk.nama_kecamatan.toLowerCase().includes(query) ||
+                (pk.nama_ketua && pk.nama_ketua.toLowerCase().includes(query)) ||
+                (pk.nama_sekretaris && pk.nama_sekretaris.toLowerCase().includes(query)) ||
+                (pk.nama_bendahara && pk.nama_bendahara.toLowerCase().includes(query)) ||
+                (pk.deskripsi && pk.deskripsi.toLowerCase().includes(query))
+              );
+            });
+            const displayed = limitCount === -1 ? filtered : filtered.slice(0, limitCount);
+
+            if (displayed.length === 0) {
+              return (
+                <div className="bg-slate-50 border border-dashed border-slate-200 rounded-3xl py-16 px-4 text-center max-w-lg mx-auto animate-fade-in">
+                  <p className="text-sm font-bold text-slate-500">Tidak ada pengurus kecamatan yang cocok dengan "{searchQuery}"</p>
+                  <p className="text-xs text-slate-400 mt-1">Coba gunakan kata kunci pencarian yang lain.</p>
+                  <button 
+                    type="button"
+                    onClick={() => { setSearchQuery(''); setLimitCount(6); }}
+                    className="mt-4 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2 rounded-full transition"
+                  >
+                    Reset Filter & Pencarian
+                  </button>
+                </div>
+              );
+            }
+
+            return (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                {displayed.map((pk) => (
+                  <div 
+                    key={pk.id}
+                    onClick={() => navigate(`/pk/${pk.id}`)}
+                    className="bg-white rounded-2xl shadow-md border border-slate-100 overflow-hidden group hover:-translate-y-1.5 hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between"
+                  >
+                    <div>
+                      <div className="relative h-48 overflow-hidden bg-slate-100">
+                        <img
+                          src={pk.foto_ketua_url || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80"}
+                          alt={pk.nama_ketua}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1549813069-f9dfe6190db2?auto=format&fit=crop&w=400&q=80';
+                          }}
+                        />
+                        <div className="absolute top-3 left-3 bg-slate-900/80 text-white text-[11px] font-mono tracking-widest uppercase px-3 py-1 rounded-full backdrop-blur-sm font-bold">
+                          Kec. {pk.nama_kecamatan}
+                        </div>
+                      </div>
+                      
+                      <div className="p-6">
+                        <h3 className="text-base sm:text-lg font-bold text-slate-900 group-hover:text-blue-600 transition-colors">
+                          PK FKP {pk.nama_kecamatan}
+                        </h3>
+                        <p className="text-xs text-slate-400 font-bold mb-3">Ketua: {pk.nama_ketua}</p>
+                        <p className="text-xs text-slate-500 leading-relaxed line-clamp-3">
+                          {pk.deskripsi || "Berkomitmen memajukan potensi industri kreatif dan mendirikan inkubator kewirausahaan pemuda."}
+                        </p>
+
+                        {/* Sekretaris & Bendahara if filled */}
+                        {(pk.nama_sekretaris || pk.nama_bendahara) && (
+                          <div className="mt-4 pt-3 border-t border-slate-100/80 grid grid-cols-2 gap-2 text-[11px] font-semibold text-slate-500">
+                            {pk.nama_sekretaris && (
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <div className="w-6 h-6 rounded-full bg-slate-100 overflow-hidden shrink-0 border border-slate-200/65">
+                                  <img
+                                    src={pk.foto_sekretaris_url || 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80'}
+                                    alt={pk.nama_sekretaris}
+                                    className="w-full h-full object-cover"
+                                  />
+                                </div>
+                                <div className="truncate">
+                                  <span className="block text-[8px] text-slate-400 font-extrabold uppercase tracking-wider leading-none">Sekretaris</span>
+                                  <span className="block text-slate-700 font-extrabold truncate leading-tight mt-0.5">{pk.nama_sekretaris}</span>
+                                </div>
+                              </div>
+                            )}
+                            {pk.nama_bendahara && (
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <div className="w-6 h-6 rounded-full bg-slate-100 overflow-hidden shrink-0 border border-slate-200/65">
+                                  <img
+                                    src={pk.foto_bendahara_url || 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=150&q=80'}
+                                    alt={pk.nama_bendahara}
+                                    className="w-full h-full object-cover"
+                                  />
+                                </div>
+                                <div className="truncate">
+                                  <span className="block text-[8px] text-slate-400 font-extrabold uppercase tracking-wider leading-none">Bendahara</span>
+                                  <span className="block text-slate-700 font-extrabold truncate leading-tight mt-0.5">{pk.nama_bendahara}</span>
+                                </div>
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
-                    )}
-                  </div>
-                </div>
+                    </div>
 
-                <div className="p-6 pt-0 border-t border-slate-50 mt-4 flex justify-between items-center">
-                  <span className="text-slate-400 text-[11px] font-mono">Didirikan: 2026</span>
-                  <div className="text-xs font-bold text-blue-600 group-hover:text-cyan-500 inline-flex items-center gap-1 transition-colors">
-                    Lihat Profil PK
-                    <ChevronRight className="w-4 h-4" />
+                    <div className="p-6 pt-0 border-t border-slate-50 mt-4 flex justify-between items-center">
+                      <span className="text-slate-400 text-[11px] font-mono">Didirikan: 2026</span>
+                      <div className="text-xs font-bold text-blue-600 group-hover:text-cyan-500 inline-flex items-center gap-1 transition-colors">
+                        Lihat Profil PK
+                        <ChevronRight className="w-4 h-4" />
+                      </div>
+                    </div>
                   </div>
-                </div>
+                ))}
               </div>
-            ))}
-          </div>
+            );
+          })()}
 
         </div>
       </section>

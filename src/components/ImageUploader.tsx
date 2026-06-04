@@ -20,8 +20,10 @@ export default function ImageUploader({ value, onChange, label = "Foto / Gambar"
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
-  const cloudName = (import.meta as any).env?.VITE_CLOUDINARY_CLOUD_NAME;
-  const uploadPreset = (import.meta as any).env?.VITE_CLOUDINARY_UPLOAD_PRESET;
+  // @ts-ignore
+  const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+  // @ts-ignore
+  const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
   const isCloudinaryConfigured = !!(cloudName && uploadPreset);
 
   const keyWords = [

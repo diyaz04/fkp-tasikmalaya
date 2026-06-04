@@ -21,7 +21,7 @@ import {
   Search
 } from 'lucide-react';
 import { dbService, DEFAULT_PROFIL } from '@/src/lib/db';
-import { ProfilOrganisasi, PKFKP, Berita, Agenda, Kontak } from '@/src/types';
+import { ProfilOrganisasi, PKFKP, Berita, Agenda, Kontak, UMKM } from '@/src/types';
 
 export default function LandingPage() {
   const navigate = useNavigate();
@@ -29,6 +29,7 @@ export default function LandingPage() {
   const [pks, setPks] = useState<PKFKP[]>([]);
   const [beritas, setBeritas] = useState<Berita[]>([]);
   const [allBeritas, setAllBeritas] = useState<Berita[]>([]);
+  const [allUmkms, setAllUmkms] = useState<UMKM[]>([]);
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
   const [agendas, setAgendas] = useState<Agenda[]>([]);
   const [kontak, setKontak] = useState<Kontak | null>(null);
@@ -48,12 +49,13 @@ export default function LandingPage() {
   useEffect(() => {
     async function loadData() {
       try {
-        const [profData, pkData, beritaData, agendaData, kontakData] = await Promise.all([
+        const [profData, pkData, beritaData, agendaData, kontakData, umkmData] = await Promise.all([
           dbService.getProfil(),
           dbService.getPKs(),
           dbService.getBerita(),
           dbService.getAgendas(),
-          dbService.getKontak()
+          dbService.getKontak(),
+          dbService.getUMKMs()
         ]);
         setProfil(profData);
         setPks(pkData.filter(p => p.is_active));
@@ -62,6 +64,7 @@ export default function LandingPage() {
         setBeritas(published.slice(0, 3));
         setAgendas(agendaData.filter(a => a.is_active).slice(0, 3));
         setKontak(kontakData);
+        setAllUmkms(umkmData);
       } catch (error) {
         console.error("Gagal memuat data landing page", error);
       } finally {
@@ -71,14 +74,25 @@ export default function LandingPage() {
     loadData();
   }, []);
 
+  // Find UMKMs that are in the featured_umkm_ids list of DPD profile and make sure they are approved
+  const featuredUmkmList = (profil?.featured_umkm_ids || [])
+    .map(id => allUmkms.find(u => u.id === id))
+    .filter((u): u is UMKM => !!u && (u.status === 'approved' || !u.status));
+
+  // Combined slides: includes news (published) and featured UMKMs
+  const heroSlides: ({ type: 'berita'; data: Berita } | { type: 'umkm'; data: UMKM })[] = [
+    ...allBeritas.map(b => ({ type: 'berita' as const, data: b })),
+    ...featuredUmkmList.map(u => ({ type: 'umkm' as const, data: u }))
+  ];
+
   useEffect(() => {
-    if (profil?.hero_mode === 'dynamic' && allBeritas.length > 0) {
+    if (profil?.hero_mode === 'dynamic' && heroSlides.length > 0) {
       const interval = setInterval(() => {
-        setCurrentSlideIndex((prev) => (prev + 1) % allBeritas.length);
+        setCurrentSlideIndex((prev) => (prev + 1) % heroSlides.length);
       }, 6000);
       return () => clearInterval(interval);
     }
-  }, [profil?.hero_mode, allBeritas.length]);
+  }, [profil?.hero_mode, heroSlides.length]);
 
   if (loading) {
     return (
@@ -90,8 +104,8 @@ export default function LandingPage() {
   }
 
   // Active slide determination
-  const isDynamicHero = profil?.hero_mode === 'dynamic' && allBeritas.length > 0;
-  const activeSlide = isDynamicHero ? allBeritas[currentSlideIndex] : null;
+  const isDynamicHero = profil?.hero_mode === 'dynamic' && heroSlides.length > 0;
+  const activeSlide = isDynamicHero ? heroSlides[currentSlideIndex] : null;
 
   // Blur map for the dynamic popular news panel on the hero
   const blurMap: Record<string, string> = {
@@ -106,7 +120,9 @@ export default function LandingPage() {
   const heroBlurClass = blurMap[profil?.hero_blur_level || 'md'] || 'backdrop-blur-md';
 
   // Hero BG inline element
-  const heroBg = activeSlide?.thumbnail_url || profil?.hero_bg_url || "https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=1600&q=80";
+  const heroBg = activeSlide 
+    ? (activeSlide.type === 'berita' ? activeSlide.data.thumbnail_url : activeSlide.data.foto_url)
+    : (profil?.hero_bg_url || "https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=1600&q=80");
 
   return (
     <div className="bg-white text-slate-800 font-sans" id="landing-page-parent">
@@ -142,8 +158,10 @@ export default function LandingPage() {
                 >
                   <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[10px] font-extrabold bg-blue-50 border border-blue-100 text-blue-600 uppercase tracking-widest shadow-sm">
                     <TrendingUp className="w-3.5 h-3.5 text-blue-500 animate-pulse" />
-                    {isDynamicHero 
-                      ? `Kabar Berita Wilayah: Oleh ${activeSlide?.penulis || 'Humas'}`
+                    {isDynamicHero && activeSlide
+                      ? activeSlide.type === 'berita'
+                        ? `Kabar Berita Wilayah: Oleh ${activeSlide.data.penulis || 'Humas'}`
+                        : `UMKM UNGGULAN: ${activeSlide.data.kategori.toUpperCase()}`
                       : "Sinergi Pentahelix Tasikmalaya"}
                   </span>
                 </motion.div>
@@ -161,7 +179,7 @@ export default function LandingPage() {
                     className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-slate-900 leading-[1.15]"
                   >
                     {isDynamicHero && activeSlide ? (
-                      activeSlide.judul
+                      activeSlide.type === 'berita' ? activeSlide.data.judul : activeSlide.data.nama_usaha
                     ) : profil?.hero_title ? (
                       profil.hero_title.includes("Pemuda") ? (
                         <span>
@@ -193,7 +211,9 @@ export default function LandingPage() {
                     className="text-sm sm:text-base text-slate-500 max-w-2xl font-semibold leading-relaxed"
                   >
                     {isDynamicHero && activeSlide 
-                      ? stripHtml(activeSlide.konten)
+                      ? activeSlide.type === 'berita' 
+                        ? stripHtml(activeSlide.data.konten)
+                        : activeSlide.data.deskripsi
                       : profil?.hero_subtitle || "Wadah Kolaborasi, Kreasi, dan Transaksi Wirausaha Muda Kabupaten Tasikmalaya Menuju Kemandirian Ekonomi."}
                   </motion.p>
                 </AnimatePresence>
@@ -202,21 +222,41 @@ export default function LandingPage() {
               {/* Slider Buttons / Actions */}
               <div className="flex flex-col sm:flex-row gap-4 justify-center sm:justify-start pt-2">
                 {isDynamicHero && activeSlide ? (
-                  <>
-                    <Link
-                      to={`/berita/${activeSlide.id}`}
-                      className="px-8 py-3.5 text-xs sm:text-sm font-extrabold rounded-full bg-gradient-to-r from-blue-600 to-cyan-500 text-white shadow-xl shadow-blue-500/20 hover:shadow-cyan-500/35 hover:scale-105 transition-all flex items-center justify-center gap-2 cursor-pointer"
-                    >
-                      Baca Berita Selengkapnya
-                      <ArrowRight className="w-4 h-4" />
-                    </Link>
-                    <Link
-                      to="/umkm"
-                      className="px-8 py-3.5 text-xs sm:text-sm font-bold rounded-full bg-white border border-slate-200 text-slate-700 hover:text-slate-900 hover:border-slate-300 shadow-md transition-all text-center cursor-pointer"
-                    >
-                      Jelajahi Direktori UMKM
-                    </Link>
-                  </>
+                  activeSlide.type === 'berita' ? (
+                    <>
+                      <Link
+                        to={`/berita/${activeSlide.data.id}`}
+                        className="px-8 py-3.5 text-xs sm:text-sm font-extrabold rounded-full bg-gradient-to-r from-blue-600 to-cyan-500 text-white shadow-xl shadow-blue-500/20 hover:shadow-cyan-500/35 hover:scale-105 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                      >
+                        Baca Berita Selengkapnya
+                        <ArrowRight className="w-4 h-4" />
+                      </Link>
+                      <Link
+                        to="/umkm"
+                        className="px-8 py-3.5 text-xs sm:text-sm font-bold rounded-full bg-white border border-slate-200 text-slate-700 hover:text-slate-900 hover:border-slate-300 shadow-md transition-all text-center cursor-pointer"
+                      >
+                        Jelajahi Direktori UMKM
+                      </Link>
+                    </>
+                  ) : (
+                    <>
+                      <a
+                        href={`https://wa.me/${activeSlide.data.no_whatsapp}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="px-8 py-3.5 text-xs sm:text-sm font-extrabold rounded-full bg-gradient-to-r from-emerald-600 to-green-500 text-white shadow-xl shadow-green-500/20 hover:shadow-emerald-500/35 hover:scale-105 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                      >
+                        Hubungi via WhatsApp
+                        <MessageSquare className="w-4 h-4" />
+                      </a>
+                      <Link
+                        to="/umkm"
+                        className="px-8 py-3.5 text-xs sm:text-sm font-bold rounded-full bg-white border border-slate-200 text-slate-700 hover:text-slate-900 hover:border-slate-300 shadow-md transition-all text-center cursor-pointer"
+                      >
+                        Jelajahi Produk Lainnya
+                      </Link>
+                    </>
+                  )
                 ) : (
                   <>
                     <Link
@@ -237,9 +277,9 @@ export default function LandingPage() {
               </div>
 
               {/* Beautiful Slide Indicator Dots */}
-              {isDynamicHero && allBeritas.length > 1 && (
+              {isDynamicHero && heroSlides.length > 1 && (
                 <div className="flex gap-2 justify-center sm:justify-start pt-4 items-center">
-                  {allBeritas.map((_, idx) => (
+                  {heroSlides.map((_, idx) => (
                     <button
                       key={idx}
                       onClick={() => setCurrentSlideIndex(idx)}
@@ -271,38 +311,76 @@ export default function LandingPage() {
                       className="w-full h-full rounded-[3rem] sm:rounded-[4rem] overflow-hidden relative z-10 group shadow-lg border border-slate-100/50"
                     >
                       {isDynamicHero && activeSlide ? (
-                        <div className="w-full h-full relative">
-                          <img 
-                            src={activeSlide.thumbnail_url} 
-                            alt={activeSlide.judul} 
-                            className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
-                          />
-                          {/* Upper Floating Badge */}
-                          <div className="absolute top-4 left-4 right-4 flex justify-between items-center z-13">
-                            <span className="text-[9px] font-mono bg-blue-600/90 text-white font-black uppercase px-2.5 py-1 rounded-full shadow-md backdrop-blur-sm tracking-widest">
-                              INFO BERITA // BARU
-                            </span>
-                            <span className="text-[9px] font-mono bg-red-600/90 text-white font-black uppercase px-2.5 py-1 rounded-full shadow-md animate-pulse tracking-widest">
-                              HOT
-                            </span>
-                          </div>
-
-                          {/* Beautiful frosted overlay dark title panel at the bottom */}
-                          <div className="absolute bottom-0 left-0 right-0 p-5 sm:p-6 bg-gradient-to-t from-slate-950/90 via-slate-950/45 to-transparent text-white space-y-1.5 pt-12">
-                            <span className="inline-block text-[9px] font-black text-cyan-300 uppercase tracking-widest bg-cyan-950/60 border border-cyan-800/40 px-2.5 py-0.5 rounded-md">
-                              Kec. {activeSlide.sumber === 'dpd' ? 'DPD' : pks.find(p => p.id === activeSlide.sumber)?.nama_kecamatan || 'Kecamatan'}
-                            </span>
-                            <h3 className="text-xs sm:text-sm md:text-base font-extrabold line-clamp-2 leading-snug">
-                              {activeSlide.judul}
-                            </h3>
-                            <div className="flex items-center gap-2 pt-1.5 border-t border-white/10 shrink-0">
-                              <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></div>
-                              <span className="text-[9px] font-mono font-bold text-slate-300 uppercase tracking-widest">
-                                Rotasi Slide Berita
+                        activeSlide.type === 'berita' ? (
+                          <div className="w-full h-full relative">
+                            <img 
+                              src={activeSlide.data.thumbnail_url} 
+                              alt={activeSlide.data.judul} 
+                              className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+                            />
+                            {/* Upper Floating Badge */}
+                            <div className="absolute top-4 left-4 right-4 flex justify-between items-center z-13">
+                              <span className="text-[9px] font-mono bg-blue-600/90 text-white font-black uppercase px-2.5 py-1 rounded-full shadow-md backdrop-blur-sm tracking-widest">
+                                INFO BERITA // BARU
+                              </span>
+                              <span className="text-[9px] font-mono bg-red-600/90 text-white font-black uppercase px-2.5 py-1 rounded-full shadow-md animate-pulse tracking-widest">
+                                HOT
                               </span>
                             </div>
+
+                            {/* Beautiful frosted overlay dark title panel at the bottom */}
+                            <div className="absolute bottom-0 left-0 right-0 p-5 sm:p-6 bg-gradient-to-t from-slate-950/90 via-slate-950/45 to-transparent text-white space-y-1.5 pt-12">
+                              <span className="inline-block text-[9px] font-black text-cyan-300 uppercase tracking-widest bg-cyan-950/60 border border-cyan-800/40 px-2.5 py-0.5 rounded-md">
+                                Kec. {activeSlide.data.sumber === 'dpd' ? 'DPD' : pks.find(p => p.id === activeSlide.data.sumber)?.nama_kecamatan || 'Kecamatan'}
+                              </span>
+                              <h3 className="text-xs sm:text-sm md:text-base font-extrabold line-clamp-2 leading-snug">
+                                {activeSlide.data.judul}
+                              </h3>
+                              <div className="flex items-center gap-2 pt-1.5 border-t border-white/10 shrink-0">
+                                <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></div>
+                                <span className="text-[9px] font-mono font-bold text-slate-300 uppercase tracking-widest">
+                                  Rotasi Slide Berita
+                                </span>
+                              </div>
+                            </div>
                           </div>
-                        </div>
+                        ) : (
+                          <div className="w-full h-full relative">
+                            <img 
+                              src={activeSlide.data.foto_url} 
+                              alt={activeSlide.data.nama_usaha} 
+                              className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+                            />
+                            {/* Upper Floating Badge */}
+                            <div className="absolute top-4 left-4 right-4 flex justify-between items-center z-13">
+                              <span className="text-[9px] font-mono bg-amber-500/95 text-white font-black uppercase px-2.5 py-1 rounded-full shadow-md backdrop-blur-sm tracking-widest">
+                                UMKM PILIHAN // DPD
+                              </span>
+                              <span className="text-[9px] font-mono bg-emerald-600/95 text-white font-black uppercase px-2.5 py-1 rounded-full shadow-md animate-pulse tracking-widest">
+                                UNGGULAN
+                              </span>
+                            </div>
+
+                            {/* Beautiful frosted overlay dark title panel at the bottom */}
+                            <div className="absolute bottom-0 left-0 right-0 p-5 sm:p-6 bg-gradient-to-t from-slate-950/90 via-slate-950/45 to-transparent text-white space-y-1.5 pt-12">
+                              <span className="inline-block text-[9px] font-black text-amber-300 uppercase tracking-widest bg-amber-950/60 border border-amber-800/40 px-2.5 py-0.5 rounded-md">
+                                Kec. {activeSlide.data.kecamatan || 'Tasikmalaya'}
+                              </span>
+                              <h3 className="text-xs sm:text-sm md:text-base font-extrabold line-clamp-2 leading-snug">
+                                {activeSlide.data.nama_usaha}
+                              </h3>
+                              <p className="text-[10px] text-slate-300 font-medium leading-none">
+                                Pemilik: {activeSlide.data.nama_pemilik}
+                              </p>
+                              <div className="flex items-center gap-2 pt-1.5 border-t border-white/10 shrink-0">
+                                <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></div>
+                                <span className="text-[9px] font-mono font-bold text-slate-300 uppercase tracking-widest">
+                                  Sorotan UMKM Unggulan
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        )
                       ) : (
                         <div className="w-full h-full relative">
                           <img 

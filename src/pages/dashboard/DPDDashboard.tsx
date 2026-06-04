@@ -28,7 +28,8 @@ import {
   LogOut,
   Eye,
   LayoutGrid,
-  List
+  List,
+  Search
 } from 'lucide-react';
 import { useAuthStore } from '@/src/store/authStore';
 import { dbService } from '@/src/lib/db';
@@ -64,6 +65,7 @@ export default function DPDDashboard() {
   const [umkms, setUmkms] = useState<UMKM[]>([]);
   const [kontak, setKontak] = useState<Kontak | null>(null);
   const [dataLoading, setDataLoading] = useState(true);
+  const [heroUmkmSearch, setHeroUmkmSearch] = useState('');
 
   // CRUD & Edit Temporaries
   const [editingPK, setEditingPK] = useState<PKFKP | null>(null);
@@ -204,7 +206,8 @@ export default function DPDDashboard() {
         hero_subtitle: profil.hero_subtitle,
         hero_bg_url: profil.hero_bg_url,
         hero_mode: profil.hero_mode || 'static',
-        hero_blur_level: profil.hero_blur_level || 'md'
+        hero_blur_level: profil.hero_blur_level || 'md',
+        featured_umkm_ids: profil.featured_umkm_ids || []
       });
       triggerSuccess('Hero Banner utama berhasil diperbarui!');
     } catch (err) {
@@ -1263,6 +1266,111 @@ export default function DPDDashboard() {
                 onChange={(url) => setProfil({ ...profil, hero_bg_url: url })}
                 label="Foto Perlengkapan Cover Beranda (Hero Background Image)"
               />
+
+              {/* UMKM Pilihan Hero */}
+              <div className="border-t border-slate-100 pt-6 space-y-4">
+                <div>
+                  <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-blue-600 animate-pulse"></span>
+                    Tampilkan UMKM Pilihan di Hero Beranda
+                  </h4>
+                  <p className="text-[11px] text-slate-400 font-semibold mt-1">
+                    Pilih beberapa UMKM binaan yang sudah disetujui (Approved) untuk ditampilkan secara bergantian dalam slideshow utama di halaman beranda. UMKM ini akan ditayangkan bersama dengan berita terpopuler.
+                  </p>
+                </div>
+
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Cari UMKM berdasarkan nama usaha atau kecamatan..."
+                    value={heroUmkmSearch}
+                    onChange={(e) => setHeroUmkmSearch(e.target.value)}
+                    className="w-full text-xs p-2.5 pl-9 border border-slate-200 bg-slate-50 rounded-xl focus:bg-white text-slate-700 font-semibold focus:ring-2 focus:ring-blue-500 outline-none"
+                  />
+                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-3.5" />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 max-h-72 overflow-y-auto p-1 border border-slate-105 bg-slate-50/20 rounded-xl" id="hero-umkm-checklist-container">
+                  {(() => {
+                    const approvedUmkms = umkms.filter(u => u.status === 'approved' || !u.status);
+                    const filtered = approvedUmkms.filter(u => 
+                      u.nama_usaha.toLowerCase().includes(heroUmkmSearch.toLowerCase()) ||
+                      u.nama_pemilik.toLowerCase().includes(heroUmkmSearch.toLowerCase()) ||
+                      (u.kecamatan || '').toLowerCase().includes(heroUmkmSearch.toLowerCase())
+                    );
+
+                    if (approvedUmkms.length === 0) {
+                      return (
+                        <div className="col-span-full py-8 text-center text-xs text-slate-400 font-semibold">
+                          Belum ada UMKM terdaftar yang disetujui (Approved). Silakan setujui beberapa UMKM terlebih dahulu di tab UMKM.
+                        </div>
+                      );
+                    }
+
+                    if (filtered.length === 0) {
+                      return (
+                        <div className="col-span-full py-8 text-center text-xs text-slate-400 font-semibold">
+                          Tidak ada UMKM yang cocok dengan pencarian Anda.
+                        </div>
+                      );
+                    }
+
+                    return filtered.map((u) => {
+                      const selectedIds = profil.featured_umkm_ids || [];
+                      const isSelected = selectedIds.includes(u.id);
+
+                      const handleToggleSelect = () => {
+                        const updatedIds = isSelected 
+                          ? selectedIds.filter(id => id !== u.id)
+                          : [...selectedIds, u.id];
+                        setProfil({ ...profil, featured_umkm_ids: updatedIds });
+                      };
+
+                      return (
+                        <button
+                          key={u.id}
+                          type="button"
+                          onClick={handleToggleSelect}
+                          className={`p-3 rounded-xl border text-left flex gap-3 transition-all cursor-pointer items-start select-none ${
+                            isSelected
+                              ? 'bg-blue-50 border-blue-500 shadow-sm'
+                              : 'bg-white border-slate-150 hover:border-slate-350'
+                          }`}
+                        >
+                          <div className="w-10 h-10 rounded-lg overflow-hidden bg-slate-100 flex-shrink-0 relative">
+                            <img src={u.foto_url} alt={u.nama_usaha} className="w-full h-full object-cover" />
+                            {isSelected && (
+                              <div className="absolute inset-0 bg-blue-600/30 flex items-center justify-center">
+                                <span className="text-white text-[10px] font-black bg-blue-600 rounded-full w-4 h-4 flex items-center justify-center border border-white">✓</span>
+                              </div>
+                            )}
+                          </div>
+                          <div className="min-w-0 flex-1 space-y-0.5">
+                            <div className="text-xs font-black text-slate-800 truncate leading-snug">{u.nama_usaha}</div>
+                            <div className="text-[10px] text-slate-500 font-semibold leading-none truncate">Pemilik: {u.nama_pemilik}</div>
+                            <div className="flex items-center gap-1 text-[9px] text-blue-600 font-bold bg-blue-50/50 border border-blue-105 px-1.5 py-0.5 rounded w-max mt-1">
+                              Kec. {u.kecamatan || 'Tasikmalaya'}
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    });
+                  })()}
+                </div>
+
+                <div className="flex justify-between items-center text-[10px] font-bold text-slate-400 px-2 pt-1">
+                  <span>Total terpilih: <span className="text-blue-650">{(profil.featured_umkm_ids || []).length}</span> UMKM Unggulan</span>
+                  {(profil.featured_umkm_ids || []).length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setProfil({ ...profil, featured_umkm_ids: [] })}
+                      className="text-red-500 hover:text-red-600 hover:underline cursor-pointer font-bold"
+                    >
+                      Bersihkan Pilihan
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
 
             <div className="flex justify-end pt-4 border-t border-slate-100">

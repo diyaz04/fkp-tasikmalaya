@@ -19,6 +19,10 @@ export default function UMKMDirectory() {
   const [selectedKecamatan, setSelectedKecamatan] = useState<string>('all');
   const [activeUMKM, setActiveUMKM] = useState<UMKM | null>(null);
 
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 6;
+
   const categories = [
     { value: 'all', label: 'Semua Kategori' },
     { value: 'kuliner', label: 'Kuliner' },
@@ -29,6 +33,21 @@ export default function UMKMDirectory() {
     { value: 'teknologi', label: 'Teknologi' },
     { value: 'lainnya', label: 'Lain-lain' }
   ];
+
+  // Counts of UMKM in each business category
+  const categoryCounts = categories.reduce((acc, cat) => {
+    if (cat.value === 'all') {
+      acc[cat.value] = umkms.length;
+    } else {
+      acc[cat.value] = umkms.filter(u => u.kategori === cat.value).length;
+    }
+    return acc;
+  }, {} as Record<string, number>);
+
+  // Reset pagination on filter change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, selectedCategory, selectedKecamatan]);
 
   useEffect(() => {
     async function loadData() {
@@ -67,6 +86,11 @@ export default function UMKMDirectory() {
     return matchesSearch && matchesCategory && matchesKecamatan;
   });
 
+  // Slicing for Pagination
+  const totalPages = Math.ceil(filteredUmkms.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedUmkms = filteredUmkms.slice(startIndex, startIndex + itemsPerPage);
+
   const getKecamatanName = (pkId: string) => {
     const found = pks.find(p => p.id === pkId);
     return found ? `Kec. ${found.nama_kecamatan}` : 'Kab. Tasikmalaya';
@@ -101,6 +125,32 @@ export default function UMKMDirectory() {
           </p>
         </div>
 
+        {/* Category Stats Deck */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3 mb-8" id="category-stats-deck">
+          {categories.map((cat) => {
+            const count = categoryCounts[cat.value] || 0;
+            const isSelected = selectedCategory === cat.value;
+            return (
+              <button
+                key={cat.value}
+                onClick={() => setSelectedCategory(cat.value)}
+                className={`p-3 rounded-2xl border text-center transition-all duration-200 cursor-pointer flex flex-col justify-between items-center gap-1.5 h-20 shadow-sm hover:scale-[1.02] active:scale-95 ${
+                  isSelected
+                    ? 'bg-gradient-to-r from-blue-600 to-cyan-500 border-blue-500 text-white shadow-md shadow-blue-500/25'
+                    : 'bg-white border-slate-100 hover:border-slate-300 text-slate-700 hover:bg-slate-50/75'
+                }`}
+              >
+                <span className={`text-[9px] font-extrabold uppercase tracking-widest line-clamp-1 ${isSelected ? 'text-blue-105' : 'text-slate-400'}`}>
+                  {cat.label.replace('Semua Kategori', 'Semua').replace(' / Kriya', '').replace(' / Trade', '').replace(' / Pertanian', '')}
+                </span>
+                <span className={`text-base font-black ${isSelected ? 'text-white' : 'text-slate-850'}`}>
+                  {count} <span className="text-[9px] font-semibold text-slate-400">Usaha</span>
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
         {/* Filter Toolbar Card with Grid layouts */}
         <div className="bg-white rounded-3xl shadow-sm border border-slate-100 p-6 md:p-8 mb-10">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
@@ -129,7 +179,9 @@ export default function UMKMDirectory() {
                 className="w-full text-sm py-3 px-4 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all font-semibold text-slate-600"
               >
                 {categories.map((cat) => (
-                  <option key={cat.value} value={cat.value}>{cat.label}</option>
+                  <option key={cat.value} value={cat.value}>
+                    {cat.label} ({categoryCounts[cat.value] || 0})
+                  </option>
                 ))}
               </select>
             </div>
@@ -167,7 +219,7 @@ export default function UMKMDirectory() {
 
         {/* Directory Listings Count indicator */}
         <div className="flex justify-between items-center mb-6 text-xs text-slate-500 font-semibold px-2">
-          <span>Menampilkan {filteredUmkms.length} wirausaha pemuda</span>
+          <span>Menampilkan {filteredUmkms.length} wirausaha pemuda {totalPages > 1 && `(Halaman ${currentPage} dari ${totalPages})`}</span>
           <span className="flex items-center gap-1 text-slate-400">
             <LayoutGrid className="w-3.5 h-3.5" /> Grid View
           </span>
@@ -189,7 +241,7 @@ export default function UMKMDirectory() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {filteredUmkms.map((u) => (
+            {paginatedUmkms.map((u) => (
               <div 
                 key={u.id}
                 className="bg-white rounded-2xl border border-slate-100 shadow-md hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 overflow-hidden flex flex-col justify-between"
@@ -267,6 +319,63 @@ export default function UMKMDirectory() {
 
               </div>
             ))}
+          </div>
+        )}
+
+        {/* Dynamic Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-12 bg-white px-6 py-4 rounded-2xl border border-slate-100 shadow-sm" id="umkm-directory-pagination">
+            <span className="text-xs font-bold text-slate-500">
+              Menampilkan <span className="text-blue-600">{startIndex + 1}</span> - <span className="text-blue-600">{Math.min(startIndex + itemsPerPage, filteredUmkms.length)}</span> dari <span className="text-slate-800">{filteredUmkms.length}</span> Wirausaha
+            </span>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {/* Prev button */}
+              <button
+                type="button"
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-all ${
+                  currentPage === 1 
+                    ? 'bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed' 
+                    : 'bg-white text-slate-705 border-slate-200 hover:bg-slate-50 hover:border-slate-300 cursor-pointer'
+                }`}
+              >
+                Sebelumnya
+              </button>
+
+              {/* Page Numbers */}
+              {Array.from({ length: totalPages }).map((_, idx) => {
+                const pageNum = idx + 1;
+                return (
+                  <button
+                    key={pageNum}
+                    type="button"
+                    onClick={() => setCurrentPage(pageNum)}
+                    className={`w-8 h-8 text-xs font-black rounded-lg transition-all cursor-pointer ${
+                      currentPage === pageNum
+                        ? 'bg-gradient-to-r from-blue-600 to-cyan-500 text-white shadow-md shadow-blue-500/20'
+                        : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 hover:border-slate-300'
+                    }`}
+                  >
+                    {pageNum}
+                  </button>
+                );
+              })}
+
+              {/* Next button */}
+              <button
+                type="button"
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
+                className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-all ${
+                  currentPage === totalPages 
+                    ? 'bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed' 
+                    : 'bg-white text-slate-707 border-slate-200 hover:bg-slate-50 hover:border-slate-300 cursor-pointer'
+                }`}
+              >
+                Berikutnya (Next)
+              </button>
+            </div>
           </div>
         )}
 

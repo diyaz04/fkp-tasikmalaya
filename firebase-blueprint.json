@@ -15,7 +15,8 @@
         "hero_title": { "type": "string" },
         "hero_subtitle": { "type": "string" },
         "hero_bg_url": { "type": "string" },
-        "updated_at": { "type": "string" }
+        "updated_at": { "type": "string" },
+        "featured_umkm_ids": { "type": "array" }
       },
       "required": ["id", "nama_organisasi", "singkatan", "visi", "misi", "sejarah"]
     },

@@ -23,6 +23,7 @@ export interface ProfilOrganisasi {
   nama_bendahara_dpd?: string;
   foto_bendahara_dpd?: string;
   updated_at: string;
+  featured_umkm_ids?: string[];
 }
 
 export interface PengurusPK {

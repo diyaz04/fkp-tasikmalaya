@@ -110,7 +110,8 @@ export const DEFAULT_PROFIL: ProfilOrganisasi = {
   foto_sekretaris_dpd: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=400&q=80",
   nama_bendahara_dpd: "Rina Marlina, S.Ak.",
   foto_bendahara_dpd: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80",
-  updated_at: "2026-06-02T14:30:00Z"
+  updated_at: "2026-06-02T14:30:00Z",
+  featured_umkm_ids: []
 };
 
 const DEFAULT_PKS: PKFKP[] = [

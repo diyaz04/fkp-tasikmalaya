@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react';
 import { Search, MapPin, Phone, RefreshCw, LayoutGrid, CheckCircle } from 'lucide-react';
 import { dbService } from '@/src/lib/db';
 import { UMKM, PKFKP } from '@/src/types';
+import { getWhatsAppLink } from '@/src/lib/utils';
 
 export default function UMKMDirectory() {
   const [umkms, setUmkms] = useState<UMKM[]>([]);
@@ -307,7 +308,7 @@ export default function UMKMDirectory() {
                     Lihat Info & Katalog
                   </button>
                   <a
-                    href={`https://wa.me/${u.no_whatsapp}?text=Halo%20${encodeURIComponent(u.nama_usaha)}%2C%20saya%20tertarik%20dengan%20produk%20Anda%20di%20portal%20FKP%20Kabupaten%20Tasikmalaya.`}
+                    href={getWhatsAppLink(u.no_whatsapp, `Halo ${u.nama_usaha}, saya tertarik dengan produk Anda di portal FKP Kabupaten Tasikmalaya.`)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="w-full text-center py-2.5 px-4 text-xs font-bold rounded-full text-white bg-gradient-to-r from-blue-600 to-cyan-500 hover:shadow-md hover:scale-[1.02] flex items-center justify-center gap-2 transition-all"
@@ -462,7 +463,7 @@ export default function UMKMDirectory() {
                   <div className="p-4 bg-slate-900 text-white text-xs font-bold flex justify-between items-center">
                     <span>Hubungi Lewat WA:</span>
                     <a 
-                      href={`https://wa.me/${activeUMKM.no_whatsapp}`} 
+                      href={getWhatsAppLink(activeUMKM.no_whatsapp, `Halo ${activeUMKM.nama_usaha}, saya tertarik dengan produk UMKM Anda.`)} 
                       target="_blank" 
                       rel="noopener noreferrer" 
                       className="text-cyan-400 hover:underline"
@@ -541,7 +542,7 @@ export default function UMKMDirectory() {
 
                         <div className="p-4 pt-0">
                           <a
-                            href={`https://wa.me/${activeUMKM.no_whatsapp}?text=Halo%20${encodeURIComponent(activeUMKM.nama_usaha)}%2C%20saya%20tertarik%20dengan%20katalog%20produk%20Anda%3A%20*${encodeURIComponent(prod.nama_produk)}*%20(${encodeURIComponent("Rp " + prod.harga.toLocaleString())})`}
+                            href={getWhatsAppLink(activeUMKM.no_whatsapp, `Halo ${activeUMKM.nama_usaha}, saya tertarik dengan katalog produk Anda: *${prod.nama_produk}* (${"Rp " + prod.harga.toLocaleString()})`)}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="w-full text-center py-2 px-3 bg-white hover:bg-slate-55 border border-slate-250 text-slate-700 font-extrabold text-[10px] sm:text-xs rounded-xl flex items-center justify-center gap-1.5 shadow-sm transition-all"
@@ -564,7 +565,7 @@ export default function UMKMDirectory() {
               {/* Dynamic Footer with Call actions */}
               <div className="flex gap-2 justify-end pt-5 border-t border-slate-100">
                 <a
-                  href={`https://wa.me/${activeUMKM.no_whatsapp}?text=Halo%20${encodeURIComponent(activeUMKM.nama_usaha)}%2C%20saya%20tertarik%20dengan%20produk%20Anda%20di%20portal%20FKP%20Kabupaten%20Tasikmalaya.`}
+                  href={getWhatsAppLink(activeUMKM.no_whatsapp, `Halo ${activeUMKM.nama_usaha}, saya tertarik dengan produk Anda di portal FKP Kabupaten Tasikmalaya.`)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="bg-gradient-to-r from-blue-600 to-cyan-500 hover:shadow-md hover:scale-[1.01] text-white font-extrabold text-xs px-6 py-2.5 rounded-full flex items-center gap-2 transition-all"

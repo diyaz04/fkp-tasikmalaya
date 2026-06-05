@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { dbService, DEFAULT_PROFIL } from '@/src/lib/db';
 import { ProfilOrganisasi, PKFKP, Berita, Agenda, Kontak, UMKM } from '@/src/types';
+import { getWhatsAppLink } from '@/src/lib/utils';
 
 export default function LandingPage() {
   const navigate = useNavigate();
@@ -241,7 +242,7 @@ export default function LandingPage() {
                   ) : (
                     <>
                       <a
-                        href={`https://wa.me/${activeSlide.data.no_whatsapp}`}
+                        href={getWhatsAppLink(activeSlide.data.no_whatsapp, `Halo ${activeSlide.data.nama_usaha}, saya tertarik dengan produk Anda di portal FKP Kabupaten Tasikmalaya.`)}
                         target="_blank"
                         rel="noreferrer"
                         className="px-8 py-3.5 text-xs sm:text-sm font-extrabold rounded-full bg-gradient-to-r from-emerald-600 to-green-500 text-white shadow-xl shadow-green-500/20 hover:shadow-emerald-500/35 hover:scale-105 transition-all flex items-center justify-center gap-2 cursor-pointer"
@@ -314,7 +315,7 @@ export default function LandingPage() {
                         activeSlide.type === 'berita' ? (
                           <div className="w-full h-full relative">
                             <img 
-                              src={activeSlide.data.thumbnail_url} 
+                              src={activeSlide.data.thumbnail_url || "https://images.unsplash.com/photo-1515187029135-18ee286d815b?auto=format&fit=crop&w=600&q=80"} 
                               alt={activeSlide.data.judul} 
                               className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
                             />
@@ -347,7 +348,7 @@ export default function LandingPage() {
                         ) : (
                           <div className="w-full h-full relative">
                             <img 
-                              src={activeSlide.data.foto_url} 
+                              src={activeSlide.data.foto_url || "https://images.unsplash.com/photo-1599490659213-e2b9527bb087?auto=format&fit=crop&w=600&q=80"} 
                               alt={activeSlide.data.nama_usaha} 
                               className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
                             />
@@ -978,7 +979,7 @@ export default function LandingPage() {
                   <MessageSquare className="w-5 h-5 text-blue-600 shrink-0" />
                   <div>
                     <span className="block text-slate-400 text-[10px] uppercase tracking-wider mb-0.5">WhatsApp Admin</span>
-                    <a href={`https://wa.me/${kontak?.whatsapp || '6281234567890'}`} target="_blank" rel="noopener noreferrer" className="text-cyan-500 hover:underline">
+                    <a href={getWhatsAppLink(kontak?.whatsapp || '6281234567890', 'Halo Admin DPD FKP Kabupaten Tasikmalaya, saya ingin bertanya mengenai kepengurusan/UMKM.')} target="_blank" rel="noopener noreferrer" className="text-cyan-500 hover:underline">
                       +{(kontak?.whatsapp || '6281234567890')} (Hubungi Sekarang)
                     </a>
                   </div>

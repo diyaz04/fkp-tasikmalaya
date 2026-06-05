@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { dbService } from '@/src/lib/db';
 import { PKFKP, UMKM } from '@/src/types';
+import { getWhatsAppLink } from '@/src/lib/utils';
 
 export default function PKDetail() {
   const { id } = useParams<{ id: string }>();
@@ -290,7 +291,7 @@ export default function PKDetail() {
 
                   <div className="p-5 pt-0">
                     <a
-                      href={`https://wa.me/${u.no_whatsapp}?text=Halo%20${encodeURIComponent(u.nama_usaha)}%2C%20saya%20melihat%20usaha%20Anda%20di%20portal%20FKP%20Kecamatan%20${encodeURIComponent(pk.nama_kecamatan)}.`}
+                      href={getWhatsAppLink(u.no_whatsapp, `Halo ${u.nama_usaha}, saya melihat usaha Anda di portal FKP Kecamatan ${pk?.nama_kecamatan || ''}.`)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="w-full text-center block py-2 px-3 text-xs font-bold rounded-full text-white bg-gradient-to-r from-blue-600 to-cyan-500 hover:shadow shadow-sm transition-all"

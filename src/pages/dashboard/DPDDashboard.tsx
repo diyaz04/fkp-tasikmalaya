@@ -1338,7 +1338,7 @@ export default function DPDDashboard() {
                           }`}
                         >
                           <div className="w-10 h-10 rounded-lg overflow-hidden bg-slate-100 flex-shrink-0 relative">
-                            <img src={u.foto_url} alt={u.nama_usaha} className="w-full h-full object-cover" />
+                            <img src={u.foto_url || "https://images.unsplash.com/photo-1599490659213-e2b9527bb087?auto=format&fit=crop&w=150&q=80"} alt={u.nama_usaha} className="w-full h-full object-cover" />
                             {isSelected && (
                               <div className="absolute inset-0 bg-blue-600/30 flex items-center justify-center">
                                 <span className="text-white text-[10px] font-black bg-blue-600 rounded-full w-4 h-4 flex items-center justify-center border border-white">✓</span>

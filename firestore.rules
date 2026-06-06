@@ -77,10 +77,10 @@ service cloud.firestore {
     match /umkm/{umkmId} {
       allow read: if true; // Public directory
       
-      allow create: if isEmailVerified() && (
+      allow create: if (request.resource.data.status == "pending") || (isEmailVerified() && (
         isAdmin() || 
         (request.resource.data.pk_id != null && isPKOwner(request.resource.data.pk_id))
-      );
+      ));
 
       allow update: if isEmailVerified() && (
         isAdmin() || 

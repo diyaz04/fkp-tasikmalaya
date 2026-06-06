@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -18,11 +18,18 @@ import {
   MessageSquare,
   ChevronRight,
   ShieldCheck,
-  Search
+  Search,
+  Check,
+  Loader2,
+  ChevronLeft,
+  Plus,
+  Trash2,
+  ShieldAlert
 } from 'lucide-react';
 import { dbService, DEFAULT_PROFIL } from '@/src/lib/db';
 import { ProfilOrganisasi, PKFKP, Berita, Agenda, Kontak, UMKM } from '@/src/types';
 import { getWhatsAppLink } from '@/src/lib/utils';
+import ImageUploader from '@/src/components/ImageUploader';
 
 export default function LandingPage() {
   const navigate = useNavigate();
@@ -37,6 +44,77 @@ export default function LandingPage() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [limitCount, setLimitCount] = useState(6);
+
+  const [currentStep, setCurrentStep] = useState(1);
+  const [newReg, setNewReg] = useState({
+    id: '',
+    pk_id: '',
+    nama_usaha: '',
+    nama_pemilik: '',
+    kategori: 'kuliner' as const,
+    deskripsi: '',
+    produk_jasa: [] as string[],
+    foto_url: '',
+    no_whatsapp: '',
+    kecamatan: '',
+    is_active: false,
+    created_at: '',
+    status: 'pending' as const,
+    shu_url: '',
+    nib_url: '',
+    has_katalog: false,
+    katalog: [] as any[]
+  });
+  const [regSuccess, setRegSuccess] = useState(false);
+  const [regSubmitting, setRegSubmitting] = useState(false);
+  const [regError, setRegError] = useState<string | null>(null);
+
+  const handleRegisterMandiri = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newReg.nama_usaha || !newReg.nama_pemilik || !newReg.pk_id || !newReg.no_whatsapp) {
+      setRegError("Ada kolom wajib yang belum diisi!");
+      return;
+    }
+    if (!newReg.shu_url) {
+      setRegError("Unggah scan SHU Anda terlebih dahulu!");
+      return;
+    }
+    if (!newReg.nib_url) {
+      setRegError("Unggah scan NIB Anda terlebih dahulu!");
+      return;
+    }
+    setRegSubmitting(true);
+    setRegError(null);
+    try {
+      const umkmId = 'umkm_mandiri_' + Math.random().toString(36).substring(2, 11);
+      const payload: UMKM = {
+        id: umkmId,
+        pk_id: newReg.pk_id,
+        nama_usaha: newReg.nama_usaha,
+        nama_pemilik: newReg.nama_pemilik,
+        kategori: newReg.kategori,
+        deskripsi: newReg.deskripsi,
+        produk_jasa: newReg.produk_jasa,
+        foto_url: newReg.foto_url || 'https://images.unsplash.com/photo-1515187029135-18ee286d815b?auto=format&fit=crop&w=600&q=80',
+        no_whatsapp: newReg.no_whatsapp,
+        kecamatan: newReg.kecamatan,
+        is_active: false,
+        created_at: new Date().toISOString(),
+        status: 'pending',
+        has_katalog: newReg.has_katalog,
+        katalog: newReg.katalog,
+        shu_url: newReg.shu_url,
+        nib_url: newReg.nib_url
+      };
+      await dbService.saveUMKM(payload);
+      setRegSuccess(true);
+    } catch (err: any) {
+      console.error(err);
+      setRegError("Gagal mengirim data pendaftaran wirausaha: " + (err.message || 'Error'));
+    } finally {
+      setRegSubmitting(false);
+    }
+  };
 
   function stripHtml(html: string) {
     if (!html) return '';
@@ -947,6 +1025,529 @@ export default function LandingPage() {
                 </div>
               </article>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* 6.5 DAFTARKAN UMKM SECARA MANDIRI */}
+      <section className="py-20 bg-gradient-to-br from-blue-900 to-indigo-950 text-white relative overflow-hidden" id="pendaftaran-mandiri">
+        {/* Subtle decorative circles */}
+        <div className="absolute top-0 left-0 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 right-0 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
+            
+            {/* Left Content Column (Information & Requirements) */}
+            <div className="lg:col-span-4 space-y-6 text-left">
+              <div>
+                <span className="text-cyan-400 font-extrabold text-[10px] sm:text-xs uppercase tracking-widest bg-cyan-950/50 px-3.5 py-1.5 rounded-full border border-cyan-500/20">
+                  Akselerasi Wirausaha Pemuda
+                </span>
+                <h2 className="text-2xl sm:text-3xl font-extrabold text-white mt-3 leading-tight uppercase font-sans">
+                  Pendaftaran Mandiri UMKM
+                </h2>
+                <p className="text-xs sm:text-sm text-blue-200 mt-2 font-medium">
+                  Ajukan pendaftaran usaha Anda ke Forum Kewirausahaan Pemuda secara mandiri untuk dipublikasikan di direktori resmi Kabupaten Tasikmalaya.
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                <h4 className="text-xs sm:text-sm font-extrabold text-cyan-400 uppercase tracking-wider">
+                  ⚠️ Syarat & Ketentuan Berkas:
+                </h4>
+                <ul className="space-y-3 text-xs text-blue-100 font-medium">
+                  <li className="flex gap-2.5 items-start">
+                    <div className="p-1 rounded-full bg-cyan-500/20 text-cyan-300 mt-0.5">
+                      <ShieldCheck className="w-4 h-4" />
+                    </div>
+                    <span>
+                      <strong className="text-white">Scan Dokumen SHU:</strong> Wajib mengupload hasil scan/foto Surat Hasil Usaha atau Koperasi/Wirausaha (format gambar) secara lengkap.
+                    </span>
+                  </li>
+                  <li className="flex gap-2.5 items-start">
+                    <div className="p-1 rounded-full bg-cyan-500/20 text-cyan-300 mt-0.5">
+                      <ShieldCheck className="w-4 h-4" />
+                    </div>
+                    <span>
+                      <strong className="text-white">Scan Dokumen NIB:</strong> Wajib mengupload scan/foto kartu atau Surat Nomor Induk Berusaha secara jelas.
+                    </span>
+                  </li>
+                  <li className="flex gap-2.5 items-start">
+                    <div className="p-1 rounded-full bg-cyan-500/20 text-cyan-300 mt-0.5">
+                      <ShieldCheck className="w-4 h-4" />
+                    </div>
+                    <span>
+                      <strong className="text-white">Identitas Valid:</strong> Data pemilik usaha dan nomor WhatsApp aktif harus dicantumkan dengan benar.
+                    </span>
+                  </li>
+                </ul>
+              </div>
+
+              <div className="p-5 bg-blue-950/40 rounded-2xl border border-blue-500/10 text-[11px] leading-relaxed text-blue-200 font-medium">
+                Setelah pendaftaran dikirimkan, Pengurus Kecamatan (PK FKP) yang bersangkutan akan memverifikasi berkas legalitas. Bila disetujui, UMKM Anda otomatis tampil di direktori publik kami.
+              </div>
+            </div>
+
+            {/* Right Form Column (Multi-Step Form Container) */}
+            <div className="lg:col-span-8 bg-white text-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl border border-slate-100/10 relative">
+              {regSuccess ? (
+                <div className="py-10 text-center space-y-4 animate-fade-in">
+                  <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto shadow-inner">
+                    <Check className="w-8 h-8" />
+                  </div>
+                  <h3 className="text-lg font-bold text-slate-900 uppercase">Pendaftaran Berhasil Dikirim!</h3>
+                  <p className="text-xs sm:text-sm text-slate-600 max-w-md mx-auto font-medium leading-relaxed">
+                    Terima kasih telah mendaftarkan UMKM <strong>{newReg.nama_usaha}</strong> secara mandiri. Berkas Legalitas (SHU & NIB) serta profil usaha Anda sedang diulas dan diverifikasi oleh Pengurus Kecamatan <strong>{newReg.kecamatan}</strong>.
+                  </p>
+                  <button
+                    onClick={() => {
+                      setRegSuccess(false);
+                      setNewReg({
+                        id: '',
+                        pk_id: '',
+                        nama_usaha: '',
+                        nama_pemilik: '',
+                        kategori: 'kuliner',
+                        deskripsi: '',
+                        produk_jasa: [],
+                        foto_url: '',
+                        no_whatsapp: '',
+                        kecamatan: '',
+                        is_active: false,
+                        created_at: '',
+                        status: 'pending',
+                        shu_url: '',
+                        nib_url: '',
+                        has_katalog: false,
+                        katalog: []
+                      });
+                      setCurrentStep(1);
+                    }}
+                    className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-xs font-bold rounded-full shadow transition-all mt-4 hover:scale-105 duration-200 cursor-pointer"
+                  >
+                    Daftarkan Usaha Lainnya
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {/* Step Progress Indicators */}
+                  <div className="hidden sm:flex items-center justify-between pb-4 border-b border-slate-100">
+                    {[
+                      { num: 1, label: 'Profil Usaha' },
+                      { num: 2, label: 'Wilayah Kecamatan' },
+                      { num: 3, label: 'Berkas Legalitas' },
+                      { num: 4, label: 'Katalog Produk' }
+                    ].map((step) => (
+                      <div key={step.num} className="flex items-center gap-2">
+                        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-extrabold ${currentStep >= step.num ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-400'}`}>
+                          {step.num}
+                        </div>
+                        <span className={`text-[11px] font-extrabold uppercase tracking-tight ${currentStep === step.num ? 'text-blue-600 font-extrabold' : 'text-slate-400 font-medium'}`}>
+                          {step.label}
+                        </span>
+                        {step.num < 4 && <ChevronRight className="w-3.5 h-3.5 text-slate-300" />}
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="sm:hidden flex items-center justify-between bg-slate-50 p-2.5 rounded-xl">
+                    <span className="text-[10px] font-bold text-slate-500">Langkah {currentStep} dari 4</span>
+                    <span className="text-xs font-bold text-blue-600 uppercase">
+                      {currentStep === 1 ? 'Profil Usaha' : currentStep === 2 ? 'Wilayah Kecamatan' : currentStep === 3 ? 'Berkas Legalitas' : 'Katalog Produk'}
+                    </span>
+                  </div>
+
+                  {regError && (
+                    <div className="p-3 bg-red-50 border border-red-200 text-red-650 text-xs font-bold rounded-xl flex gap-2 items-center text-left">
+                      <ShieldAlert className="w-4.5 h-4.5 text-red-500 shrink-0" />
+                      <span>{regError}</span>
+                    </div>
+                  )}
+
+                  <form onSubmit={handleRegisterMandiri} className="space-y-5">
+                    {/* STEP 1: PROFIL USAHA */}
+                    {currentStep === 1 && (
+                      <div className="space-y-4 animate-fade-in text-left">
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-extrabold text-slate-500 uppercase">Nama Usaha / Toko / Jasa</label>
+                          <input
+                            type="text"
+                            value={newReg.nama_usaha}
+                            onChange={(e) => setNewReg({ ...newReg, nama_usaha: e.target.value })}
+                            className="w-full text-xs p-3 border border-slate-250 bg-slate-50 rounded-xl text-slate-700 font-semibold focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            placeholder="Contoh: Anyaman Rajapolah Indah"
+                            required
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-extrabold text-slate-500 uppercase">Nama Lengkap Pemilik</label>
+                          <input
+                            type="text"
+                            value={newReg.nama_pemilik}
+                            onChange={(e) => setNewReg({ ...newReg, nama_pemilik: e.target.value })}
+                            className="w-full text-xs p-3 border border-slate-250 bg-slate-50 rounded-xl text-slate-700 font-semibold focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            placeholder="Sesuai KTP"
+                            required
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-extrabold text-slate-500 uppercase">Kategori</label>
+                            <select
+                              value={newReg.kategori}
+                              onChange={(e) => setNewReg({ ...newReg, kategori: e.target.value as any })}
+                              className="w-full text-xs p-3 border border-slate-250 bg-slate-50 rounded-xl font-semibold text-slate-600 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
+                            >
+                              <option value="kuliner">Kuliner</option>
+                              <option value="fashion">Fashion</option>
+                              <option value="kerajinan">Kerajinan</option>
+                              <option value="jasa">Jasa</option>
+                              <option value="pertanian">Pertanian</option>
+                              <option value="teknologi">Teknologi</option>
+                              <option value="lainnya">Lainnya</option>
+                            </select>
+                          </div>
+
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-extrabold text-slate-500 uppercase">No WhatsApp Aktif (Format 62xx)</label>
+                            <input
+                              type="text"
+                              value={newReg.no_whatsapp}
+                              onChange={(e) => setNewReg({ ...newReg, no_whatsapp: e.target.value })}
+                              className="w-full text-xs p-3 border border-slate-250 bg-slate-50 rounded-xl text-slate-700 font-semibold focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                              placeholder="6281234567xxx"
+                              required
+                            />
+                          </div>
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-extrabold text-slate-500 uppercase">Deskripsi Ringkas Kegiatan Bisnis</label>
+                          <textarea
+                            value={newReg.deskripsi}
+                            onChange={(e) => setNewReg({ ...newReg, deskripsi: e.target.value })}
+                            className="w-full text-xs p-3 border border-slate-250 bg-slate-50 rounded-xl text-slate-700 font-semibold focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            rows={3}
+                            placeholder="Jelaskan mengenai keunikan produk, lama usaha, atau kapasitas produksi usaha Anda..."
+                            required
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-extrabold text-slate-500 uppercase">Produk Unggulan Utama (Pisahkan koma)</label>
+                          <input
+                            type="text"
+                            value={newReg.produk_jasa ? newReg.produk_jasa.join(', ') : ''}
+                            onChange={(e) => setNewReg({ ...newReg, produk_jasa: e.target.value.split(',').map(s => s.trim()).filter(Boolean) })}
+                            className="w-full text-xs p-3 border border-slate-250 bg-slate-50 rounded-xl text-slate-700 font-semibold focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            placeholder="Contoh: Dompet Anyaman Mendong, Gantungan Kunci Rajut"
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* STEP 2: WILAYAH KECAMATAN */}
+                    {currentStep === 2 && (
+                      <div className="space-y-4 animate-fade-in text-left">
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-extrabold text-slate-500 uppercase">Pilih Wilayah Kecamatan Usaha</label>
+                          <select
+                            value={newReg.pk_id}
+                            onChange={(e) => {
+                              const selPk = pks.find(p => p.id === e.target.value);
+                              if (selPk) {
+                                setNewReg({ ...newReg, pk_id: selPk.id, kecamatan: selPk.nama_kecamatan });
+                              } else {
+                                setNewReg({ ...newReg, pk_id: '', kecamatan: '' });
+                              }
+                            }}
+                            className="w-full text-xs p-3.5 border border-slate-250 bg-slate-50 rounded-xl font-bold text-slate-700 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
+                            required
+                          >
+                            <option value="">-- Pilih Kecamatan Berdirinya Usaha --</option>
+                            {pks.map((p) => (
+                              <option key={p.id} value={p.id}>Kecamatan {p.nama_kecamatan}</option>
+                            ))}
+                          </select>
+                          <p className="text-[10px] text-slate-400 font-medium leading-normal mt-1.5 block">
+                            Pilih lokasi kecamatan yang sesuai untuk menentukan Pengurus Kecamatan (PK FKP) mana yang memvalidasi berkas SHU & NIB bisnis Anda.
+                          </p>
+                        </div>
+
+                        {newReg.pk_id && (
+                          <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-150 space-y-2 text-xs font-semibold text-slate-700">
+                            <span className="text-[9px] font-extrabold text-emerald-600 block uppercase tracking-wider mb-1">Pengurus Wilayah Penerima:</span>
+                            <div className="flex gap-3">
+                              {pks.find(p => p.id === newReg.pk_id)?.foto_ketua_url && (
+                                <img
+                                  src={pks.find(p => p.id === newReg.pk_id)?.foto_ketua_url}
+                                  alt="Ketua PK"
+                                  className="w-10 h-10 rounded-full object-cover shrink-0 border border-emerald-300"
+                                />
+                              )}
+                              <div>
+                                <p className="text-slate-850 font-bold uppercase text-[10px]">Ketua Forum Kecamatan {newReg.kecamatan}</p>
+                                <p className="text-slate-500 font-semibold mt-0.5">{pks.find(p => p.id === newReg.pk_id)?.nama_ketua}</p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* STEP 3: BERKAS LEGALITAS (MANDATORY SHU & NIB) */}
+                    {currentStep === 3 && (
+                      <div className="space-y-5 animate-fade-in text-left">
+                        <div className="p-4 bg-orange-50 border border-orange-200 rounded-2xl text-[11px] text-orange-850 leading-relaxed font-semibold">
+                          Wajib mengunggah scan SHU dan Scan NIB Anda secara jelas untuk diserahkan ke sistem review kami. Dokumen Anda terlindungi secara pribadi.
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
+                            <span className="text-[10px] font-extrabold text-slate-500 block uppercase tracking-wide">
+                              1. SCAN / FOTO HASIL SCAN SHU <span className="text-red-500">*</span>
+                            </span>
+                            <ImageUploader
+                              value={newReg.shu_url}
+                              onChange={(url) => setNewReg({ ...newReg, shu_url: url })}
+                              label="Unggah Scan SHU"
+                            />
+                            {newReg.shu_url ? (
+                              <div className="flex items-center gap-1.5 text-[10px] text-emerald-600 font-bold mt-1">
+                                <Check className="w-4 h-4" /> Dokumen SHU Terunggah!
+                              </div>
+                            ) : (
+                              <span className="text-[9px] text-red-500 block font-medium">Unggahan wajib. Silakan unggah berkas SHU usaha Anda.</span>
+                            )}
+                          </div>
+
+                          <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
+                            <span className="text-[10px] font-extrabold text-slate-500 block uppercase tracking-wide">
+                              2. SCAN / FOTO SHU NIB (NOMOR INDUK BERUSAHA) <span className="text-red-500">*</span>
+                            </span>
+                            <ImageUploader
+                              value={newReg.nib_url}
+                              onChange={(url) => setNewReg({ ...newReg, nib_url: url })}
+                              label="Unggah Scan NIB"
+                            />
+                            {newReg.nib_url ? (
+                              <div className="flex items-center gap-1.5 text-[10px] text-emerald-600 font-bold mt-1">
+                                <Check className="w-4 h-4" /> Dokumen NIB Terunggah!
+                              </div>
+                            ) : (
+                              <span className="text-[9px] text-red-500 block font-medium">Unggahan wajib. Silakan unggah berkas NIB usaha Anda.</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* STEP 4: COVER PHOTO & KATALOG PRODUK */}
+                    {currentStep === 4 && (
+                      <div className="space-y-4 animate-fade-in text-left">
+                        <div className="p-3 bg-blue-50/50 border border-blue-200 rounded-2xl">
+                          <ImageUploader
+                            value={newReg.foto_url}
+                            onChange={(url) => setNewReg({ ...newReg, foto_url: url })}
+                            label="Cover / Poster Utama Usaha / Foto Toko"
+                          />
+                        </div>
+
+                        {/* PILIHAN KATALOG PRODUK */}
+                        <div className="p-4 border border-slate-200 rounded-2xl space-y-4 bg-slate-50/50">
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              id="reg_has_katalog"
+                              checked={newReg.has_katalog}
+                              onChange={(e) => {
+                                const checked = e.target.checked;
+                                setNewReg({
+                                  ...newReg,
+                                  has_katalog: checked,
+                                  katalog: checked ? [{ foto_url: '', nama_produk: '', harga: 0, deskripsi: '' }] : []
+                                });
+                              }}
+                              className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4.5 h-4.5 cursor-pointer"
+                            />
+                            <label htmlFor="reg_has_katalog" className="text-xs font-bold text-slate-700 cursor-pointer select-none">
+                              Sertakan Katalog Produk Tambahan?
+                            </label>
+                          </div>
+
+                          {newReg.has_katalog && (
+                            <div className="space-y-4 pt-4 border-t border-slate-200 text-xs">
+                              <div className="flex justify-between items-center">
+                                <span className="font-extrabold uppercase text-[10px] text-slate-600 font-sans tracking-wider">Daftar Produk Katalog ({newReg.katalog?.length || 0})</span>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setNewReg({
+                                      ...newReg,
+                                      katalog: [...(newReg.katalog || []), { foto_url: '', nama_produk: '', harga: 0, deskripsi: '' }]
+                                    });
+                                  }}
+                                  className="text-[10px] bg-blue-600 hover:bg-blue-700 text-white font-bold px-3 py-1.5 rounded-full transition-all"
+                                >
+                                  + Tambah Produk
+                                </button>
+                              </div>
+
+                              <div className="space-y-4 max-h-[300px] overflow-y-auto pr-1">
+                                {newReg.katalog.map((prod, idx) => (
+                                  <div key={idx} className="p-3.5 bg-white border border-slate-200 rounded-xl space-y-3 relative shadow-sm text-left">
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const updated = newReg.katalog.filter((_, pIdx) => pIdx !== idx);
+                                        setNewReg({ ...newReg, katalog: updated });
+                                      }}
+                                      className="absolute top-2 right-2 text-[10px] bg-red-100/60 hover:bg-red-100 text-red-600 font-extrabold px-2.5 py-1 rounded-full transition-all"
+                                    >
+                                      Hapus
+                                    </button>
+                                    <div className="font-extrabold text-[10px] text-slate-400">PRODUK #{idx + 1}</div>
+
+                                    <div className="grid grid-cols-2 gap-2">
+                                      <div className="space-y-1">
+                                        <label className="text-[9px] font-bold text-slate-500 uppercase">Nama Produk</label>
+                                        <input
+                                          type="text"
+                                          value={prod.nama_produk}
+                                          onChange={(e) => {
+                                            const updated = [...newReg.katalog];
+                                            updated[idx].nama_produk = e.target.value;
+                                            setNewReg({ ...newReg, katalog: updated });
+                                          }}
+                                          className="w-full text-xs p-2.5 border border-slate-250 rounded-lg text-slate-700 font-semibold focus:bg-white focus:outline-none"
+                                          placeholder="Nama produk"
+                                          required
+                                        />
+                                      </div>
+                                      <div className="space-y-1">
+                                        <label className="text-[9px] font-bold text-slate-500 uppercase">Harga (Rp)</label>
+                                        <input
+                                          type="number"
+                                          value={prod.harga || ''}
+                                          onChange={(e) => {
+                                            const updated = [...newReg.katalog];
+                                            updated[idx].harga = Number(e.target.value);
+                                            setNewReg({ ...newReg, katalog: updated });
+                                          }}
+                                          className="w-full text-xs p-2.5 border border-slate-250 rounded-lg text-slate-700 font-semibold focus:bg-white focus:outline-none"
+                                          placeholder="15000"
+                                          required
+                                        />
+                                      </div>
+                                    </div>
+
+                                    <div className="space-y-1">
+                                      <label className="text-[9px] font-bold text-slate-500 uppercase">Deskripsi</label>
+                                      <textarea
+                                        value={prod.deskripsi}
+                                        onChange={(e) => {
+                                          const updated = [...newReg.katalog];
+                                          updated[idx].deskripsi = e.target.value;
+                                          setNewReg({ ...newReg, katalog: updated });
+                                        }}
+                                        className="w-full text-xs p-2.5 border border-slate-250 rounded-lg text-slate-700 font-semibold focus:bg-white focus:outline-none"
+                                        rows={2}
+                                        placeholder="Spesifikasi/Keistimewaan..."
+                                        required
+                                      />
+                                    </div>
+
+                                    <ImageUploader
+                                      value={prod.foto_url}
+                                      onChange={(url) => {
+                                        const updated = [...newReg.katalog];
+                                        updated[idx].foto_url = url;
+                                        setNewReg({ ...newReg, katalog: updated });
+                                      }}
+                                      label="Foto Produk"
+                                    />
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Navigation Buttons */}
+                    <div className="flex justify-between items-center pt-4 border-t border-slate-100">
+                      {currentStep > 1 ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setRegError(null);
+                            setCurrentStep(prev => prev - 1);
+                          }}
+                          className="px-5 py-2.5 border border-slate-250 hover:bg-slate-50 text-slate-600 rounded-full text-xs font-bold font-sans transition-all flex items-center gap-1.5 cursor-pointer"
+                        >
+                          <ChevronLeft className="w-4 h-4" /> Kembali
+                        </button>
+                      ) : (
+                        <div />
+                      )}
+
+                      {currentStep < 4 ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            // Validate current steps fields
+                            if (currentStep === 1) {
+                              if (!newReg.nama_usaha || !newReg.nama_pemilik || !newReg.no_whatsapp || !newReg.deskripsi) {
+                                setRegError("Pastikan semua form mandatory diisi dengan lengkap.");
+                                return;
+                              }
+                            } else if (currentStep === 2) {
+                              if (!newReg.pk_id) {
+                                setRegError("Harap pilih Wilayah Kecamatan usaha Anda berdiri.");
+                                return;
+                              }
+                            } else if (currentStep === 3) {
+                              if (!newReg.shu_url) {
+                                setRegError("Anda wajib mengunggah scan/foto dokumen SHU.");
+                                return;
+                              }
+                              if (!newReg.nib_url) {
+                                setRegError("Anda wajib mengunggah scan/foto dokumen NIB.");
+                                return;
+                              }
+                            }
+                            setRegError(null);
+                            setCurrentStep(prev => prev + 1);
+                          }}
+                          className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-650 hover:shadow-md hover:scale-[1.01] text-white text-xs font-bold rounded-full transition-all flex items-center gap-1 cursor-pointer"
+                        >
+                          Lanjut Langkah <ChevronRight className="w-4 h-4" />
+                        </button>
+                      ) : (
+                        <button
+                          type="submit"
+                          disabled={regSubmitting}
+                          className="px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-green-600 border border-green-300 text-white text-xs font-bold rounded-full hover:shadow transition-all flex items-center gap-1 justify-center min-w-[120px] disabled:opacity-50 cursor-pointer"
+                        >
+                          {regSubmitting ? (
+                            <>
+                              <Loader2 className="w-4 h-4 animate-spin" /> Mengirim...
+                            </>
+                          ) : (
+                            "Kirim Pendaftaran"
+                          )}
+                        </button>
+                      )}
+                    </div>
+                  </form>
+                </div>
+              )}
+            </div>
+
           </div>
         </div>
       </section>

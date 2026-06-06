@@ -102,6 +102,8 @@ export interface UMKM {
   catatan_review?: string | null;
   has_katalog: boolean;
   katalog?: ProdukKatalog[];
+  shu_url?: string;
+  nib_url?: string;
 }
 
 export interface Kontak {

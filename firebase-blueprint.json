@@ -91,7 +91,9 @@
         "no_whatsapp": { "type": "string" },
         "kecamatan": { "type": "string" },
         "is_active": { "type": "boolean" },
-        "created_at": { "type": "string" }
+        "created_at": { "type": "string" },
+        "shu_url": { "type": "string" },
+        "nib_url": { "type": "string" }
       },
       "required": ["id", "pk_id", "nama_usaha", "nama_pemilik", "kategori", "no_whatsapp"]
     },

@@ -53,8 +53,16 @@ service cloud.firestore {
     // 4. PK FKP (Kecamatan accounts)
     match /pk_fkp/{pkId} {
       allow read: if true; // Publicly viewable
-      allow create, delete: if isAdmin(); // Only DPD Admin can create/delete PK accounts
-      allow update: if isEmailVerified() && (isAdmin() || isPKOwner(pkId));
+      allow create: if isEmailVerified() && (
+        isAdmin() || 
+        (request.resource.data.email is string && request.resource.data.email.lower() == request.auth.token.email.lower())
+      );
+      allow update: if isEmailVerified() && (
+        isAdmin() || 
+        (resource.data.email is string && resource.data.email.lower() == request.auth.token.email.lower()) ||
+        (request.resource.data.email is string && request.resource.data.email.lower() == request.auth.token.email.lower())
+      );
+      allow delete: if isAdmin(); // Only DPD Admin can delete PK accounts
     }
 
     // 5. Berita

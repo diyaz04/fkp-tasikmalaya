@@ -17,7 +17,10 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      return isEmailVerified() && (request.auth.token.email == "admindpdfkp@gmail.com" || request.auth.token.email == "sriwulandari16092000@gmail.com");
+      return isEmailVerified() && (
+        request.auth.token.email.lower() == "admindpdfkp@gmail.com" || 
+        request.auth.token.email.lower() == "sriwulandari16092000@gmail.com"
+      );
     }
 
     function isValidId(id) {
@@ -26,8 +29,13 @@ service cloud.firestore {
 
     function isPKOwner(pkId) {
       return isEmailVerified() && 
-        exists(/databases/$(database)/documents/pk_fkp/$(pkId)) &&
-        get(/databases/$(database)/documents/pk_fkp/$(pkId)).data.email == request.auth.token.email;
+        exists(/databases/$(database)/documents/pk_fkp/$(pkId)) && (
+          get(/databases/$(database)/documents/pk_fkp/$(pkId)).data.email == request.auth.token.email ||
+          (
+            get(/databases/$(database)/documents/pk_fkp/$(pkId)).data.email is string &&
+            get(/databases/$(database)/documents/pk_fkp/$(pkId)).data.email.lower() == request.auth.token.email.lower()
+          )
+        );
     }
 
     // 2. Organization Profile

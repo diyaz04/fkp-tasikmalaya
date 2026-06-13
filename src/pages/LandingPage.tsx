@@ -199,9 +199,19 @@ export default function LandingPage() {
   const heroBlurClass = blurMap[profil?.hero_blur_level || 'md'] || 'backdrop-blur-md';
 
   // Hero BG inline element
-  const heroBg = activeSlide 
-    ? (activeSlide.type === 'berita' ? activeSlide.data.thumbnail_url : activeSlide.data.foto_url)
-    : (profil?.hero_bg_url || "https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=1600&q=80");
+  const getHeroBg = () => {
+    if (activeSlide) {
+      const url = activeSlide.type === 'berita' ? activeSlide.data.thumbnail_url : activeSlide.data.foto_url;
+      if (url && url.trim() !== '') {
+        return url;
+      }
+    }
+    if (profil?.hero_bg_url && profil.hero_bg_url.trim() !== '') {
+      return profil.hero_bg_url;
+    }
+    return "https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=1600&q=80";
+  };
+  const heroBg = getHeroBg();
 
   return (
     <div className="bg-white text-slate-800 font-sans" id="landing-page-parent">

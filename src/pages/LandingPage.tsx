@@ -161,6 +161,15 @@ export default function LandingPage() {
     loadData();
   }, []);
 
+  useEffect(() => {
+    if (loading || !window.location.hash) return;
+    const targetId = window.location.hash.replace('#', '');
+    if (!targetId) return;
+    window.setTimeout(() => {
+      document.getElementById(targetId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+  }, [loading]);
+
   // Find UMKMs that are in the featured_umkm_ids list of DPD profile and make sure they are approved
   const featuredUmkmList = (profil?.featured_umkm_ids || [])
     .map(id => allUmkms.find(u => u.id === id))

@@ -19,9 +19,21 @@ export default function Navbar() {
     navigate('/');
   };
 
+  const handleNavLinkClick = (path: string) => {
+    setIsOpen(false);
+    if (path.startsWith('/#') && location.pathname === '/') {
+      const targetId = path.replace('/#', '');
+      window.setTimeout(() => {
+        document.getElementById(targetId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 0);
+    }
+  };
+
   const navLinks = [
     { name: 'Beranda', path: '/' },
+    { name: 'Pengurus Kecamatan', path: '/#pk-kecamatan' },
     { name: 'Direktori UMKM', path: '/umkm' },
+    { name: 'Galeri', path: '/#galeri-kegiatan' },
     { name: 'Berita & Artikel', path: '/berita' }
   ];
 
@@ -53,11 +65,14 @@ export default function Navbar() {
           {/* Desktop Navigation Links */}
           <div className="hidden md:flex items-center gap-6">
             {navLinks.map((link) => {
-              const isActive = location.pathname === link.path;
+              const isActive = link.path.includes('#')
+                ? location.pathname === '/' && location.hash === link.path.replace('/', '')
+                : location.pathname === link.path;
               return (
                 <Link
                   key={link.path}
                   to={link.path}
+                  onClick={() => handleNavLinkClick(link.path)}
                   className={`text-sm font-semibold transition-colors duration-200 ${
                     isActive 
                       ? 'bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-cyan-500' 
@@ -120,12 +135,14 @@ export default function Navbar() {
       {isOpen && (
         <div className="md:hidden bg-white border-t border-slate-100 px-4 pt-3 pb-4 space-y-2 shadow-inner">
           {navLinks.map((link) => {
-            const isActive = location.pathname === link.path;
+            const isActive = link.path.includes('#')
+              ? location.pathname === '/' && location.hash === link.path.replace('/', '')
+              : location.pathname === link.path;
             return (
               <Link
                 key={link.path}
                 to={link.path}
-                onClick={() => setIsOpen(false)}
+                onClick={() => handleNavLinkClick(link.path)}
                 className={`block px-3 py-2 text-sm font-semibold rounded-xl ${
                   isActive 
                     ? 'bg-blue-50 text-blue-600' 

@@ -75,6 +75,22 @@
       },
       "required": ["id", "judul", "tanggal_mulai", "lokasi", "is_active"]
     },
+    "GaleriKegiatan": {
+      "title": "GaleriKegiatan",
+      "description": "Dokumentasi foto kegiatan FKP untuk landing page",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "judul": { "type": "string" },
+        "deskripsi": { "type": "string" },
+        "foto_url": { "type": "string" },
+        "tanggal": { "type": "string" },
+        "lokasi": { "type": "string" },
+        "is_active": { "type": "boolean" },
+        "created_at": { "type": "string" }
+      },
+      "required": ["id", "judul", "foto_url", "tanggal", "is_active"]
+    },
     "UMKM": {
       "title": "UMKM",
       "description": "Daftar usaha mikro kecil menengah binaan FKP",
@@ -133,6 +149,10 @@
     "agenda": {
       "schema": "Agenda",
       "description": "Agenda dan kalender kegiatan DPD & PK FKP"
+    },
+    "galeri_kegiatan": {
+      "schema": "GaleriKegiatan",
+      "description": "Galeri dokumentasi kegiatan FKP yang tampil di landing page"
     },
     "umkm": {
       "schema": "UMKM",

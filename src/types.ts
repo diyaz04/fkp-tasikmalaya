@@ -86,6 +86,17 @@ export interface Agenda {
   created_at: string;
 }
 
+export interface GaleriKegiatan {
+  id: string;
+  judul: string;
+  deskripsi?: string;
+  foto_url: string;
+  tanggal: string;
+  lokasi?: string;
+  is_active: boolean;
+  created_at: string;
+}
+
 export interface ProdukKatalog {
   foto_url: string;
   nama_produk: string;

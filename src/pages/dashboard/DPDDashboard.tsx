@@ -14,6 +14,7 @@ import {
   Calendar, 
   ShoppingBag, 
   Contact, 
+  Image as ImageIcon,
   Plus, 
   Trash2, 
   Edit3, 
@@ -39,13 +40,14 @@ import {
   PKFKP, 
   Berita, 
   Agenda, 
+  GaleriKegiatan,
   UMKM, 
   Kontak,
   BiroOrganisasi,
   PengurusPK
 } from '@/src/types';
 
-type TabType = 'overview' | 'profil' | 'hero' | 'berita' | 'pk' | 'agenda' | 'umkm' | 'kontak';
+type TabType = 'overview' | 'profil' | 'hero' | 'berita' | 'pk' | 'agenda' | 'galeri' | 'umkm' | 'kontak';
 
 export default function DPDDashboard() {
   const navigate = useNavigate();
@@ -64,6 +66,7 @@ export default function DPDDashboard() {
   const [pks, setPks] = useState<PKFKP[]>([]);
   const [beritas, setBeritas] = useState<Berita[]>([]);
   const [agendas, setAgendas] = useState<Agenda[]>([]);
+  const [galeriKegiatan, setGaleriKegiatan] = useState<GaleriKegiatan[]>([]);
   const [umkms, setUmkms] = useState<UMKM[]>([]);
   const [kontak, setKontak] = useState<Kontak | null>(null);
   const [dataLoading, setDataLoading] = useState(true);
@@ -91,6 +94,11 @@ export default function DPDDashboard() {
     judul: '', deskripsi: '', tanggal_mulai: '', tanggal_selesai: '', lokasi: '', poster_url: '', is_active: true
   });
 
+  const [editingGaleri, setEditingGaleri] = useState<GaleriKegiatan | null>(null);
+  const [newGaleri, setNewGaleri] = useState<Partial<GaleriKegiatan>>({
+    judul: '', deskripsi: '', foto_url: '', tanggal: '', lokasi: '', is_active: true
+  });
+
   const [editingUMKM, setEditingUMKM] = useState<UMKM | null>(null);
   const [newUMKM, setNewUMKM] = useState<Partial<UMKM>>({
     nama_usaha: '', nama_pemilik: '', kategori: 'kuliner', deskripsi: '', produk_jasa: [], foto_url: '', no_whatsapp: '', kecamatan: '', is_active: true, pk_id: '', status: 'approved', has_katalog: false, katalog: []
@@ -104,6 +112,7 @@ export default function DPDDashboard() {
   const [pkModalOpen, setPkModalOpen] = useState(false);
   const [pkViewMode, setPkViewMode] = useState<'grid' | 'list'>('grid');
   const [agendaModalOpen, setAgendaModalOpen] = useState(false);
+  const [galeriModalOpen, setGaleriModalOpen] = useState(false);
   const [umkmModalOpen, setUmkmModalOpen] = useState(false);
 
   const [showStatusNotesId, setShowStatusNotesId] = useState<string | null>(null);
@@ -129,11 +138,12 @@ export default function DPDDashboard() {
   const loadAllDatabase = async () => {
     setDataLoading(true);
     try {
-      const [p, k, b, a, u, kt] = await Promise.all([
+      const [p, k, b, a, g, u, kt] = await Promise.all([
         dbService.getProfil(),
         dbService.getPKs(),
         dbService.getBerita(),
         dbService.getAgendas(),
+        dbService.getGaleriKegiatan(),
         dbService.getUMKMs(),
         dbService.getKontak()
       ]);
@@ -141,6 +151,7 @@ export default function DPDDashboard() {
       setPks(k);
       setBeritas(b);
       setAgendas(a);
+      setGaleriKegiatan([...g].sort((left, right) => (right.tanggal || '').localeCompare(left.tanggal || '')));
       setUmkms(u);
       setKontak(kt);
     } catch (e) {
@@ -608,6 +619,60 @@ export default function DPDDashboard() {
   };
 
   // ==========================================
+  // HANDLERS: GALERI KEGIATAN
+  // ==========================================
+  const handleSaveGaleri = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const galeriId = editingGaleri ? editingGaleri.id : 'g_' + Date.now();
+      const payload: GaleriKegiatan = {
+        id: galeriId,
+        judul: newGaleri.judul || '',
+        deskripsi: newGaleri.deskripsi || '',
+        foto_url: newGaleri.foto_url || '',
+        tanggal: newGaleri.tanggal || new Date().toISOString().slice(0, 10),
+        lokasi: newGaleri.lokasi || '',
+        is_active: newGaleri.is_active !== undefined ? newGaleri.is_active : true,
+        created_at: editingGaleri ? editingGaleri.created_at : new Date().toISOString()
+      };
+      await dbService.saveGaleriKegiatan(payload);
+      setEditingGaleri(null);
+      setNewGaleri({ judul: '', deskripsi: '', foto_url: '', tanggal: '', lokasi: '', is_active: true });
+      setGaleriModalOpen(false);
+      loadAllDatabase();
+      triggerSuccess('Foto kegiatan berhasil disimpan ke Galeri FKP!');
+    } catch (err) {
+      console.error(err);
+      alert('Gagal menyimpan galeri kegiatan.');
+    }
+  };
+
+  const handleEditGaleri = (item: GaleriKegiatan) => {
+    setEditingGaleri(item);
+    setNewGaleri({
+      judul: item.judul,
+      deskripsi: item.deskripsi || '',
+      foto_url: item.foto_url,
+      tanggal: item.tanggal,
+      lokasi: item.lokasi || '',
+      is_active: item.is_active
+    });
+    setGaleriModalOpen(true);
+  };
+
+  const handleDeleteGaleri = async (id: string) => {
+    if (!confirm('Hapus foto kegiatan dari galeri?')) return;
+    try {
+      await dbService.deleteGaleriKegiatan(id);
+      loadAllDatabase();
+      triggerSuccess('Foto kegiatan berhasil dihapus dari galeri.');
+    } catch (err) {
+      console.error(err);
+      alert('Gagal menghapus galeri kegiatan.');
+    }
+  };
+
+  // ==========================================
   // HANDLERS: UMKM (ALL)
   // ==========================================
   const handleSaveUMKM = async (e: React.FormEvent) => {
@@ -749,6 +814,7 @@ export default function DPDDashboard() {
     { type: 'berita', label: 'Liputan Kabar Berita', icon: FileText, badge: pendingBerita.length },
     { type: 'pk', label: 'Kelola PK Kecamatan', icon: Users },
     { type: 'agenda', label: 'Kalender Agenda', icon: Calendar },
+    { type: 'galeri', label: 'Galeri Kegiatan', icon: ImageIcon },
     { type: 'umkm', label: 'Direktori UMKM', icon: ShoppingBag },
     { type: 'kontak', label: 'Sekretariat & Kontak', icon: Contact }
   ];
@@ -2264,6 +2330,202 @@ export default function DPDDashboard() {
               </div>
             )}
 
+          </div>
+        )}
+
+        {/* ------------------------------------- */}
+        {/* SECTION: GALERI KEGIATAN */}
+        {/* ------------------------------------- */}
+        {activeTab === 'galeri' && (
+          <div className="space-y-6 animate-fade-in" id="dpd-galeri-subsection">
+            <div className="bg-white border border-slate-200/50 p-6 rounded-2xl shadow w-full">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-100 pb-3 mb-4">
+                <div>
+                  <h3 className="text-sm font-extrabold uppercase tracking-widest text-slate-800">Galeri Kegiatan FKP</h3>
+                  <p className="text-[10px] text-slate-400 font-bold mt-1">
+                    Foto yang diunggah akan dikompres dulu lalu dikirim ke Cloudinary melalui uploader yang sama.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingGaleri(null);
+                    setNewGaleri({ judul: '', deskripsi: '', foto_url: '', tanggal: '', lokasi: '', is_active: true });
+                    setGaleriModalOpen(true);
+                  }}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-full text-xs font-bold inline-flex items-center justify-center gap-1"
+                >
+                  <Plus className="w-4 h-4" />
+                  Tambah Foto Kegiatan
+                </button>
+              </div>
+
+              {galeriKegiatan.length === 0 ? (
+                <div className="border border-dashed border-slate-200 rounded-2xl p-8 text-center bg-slate-50/60">
+                  <p className="text-xs text-slate-400 font-semibold">Belum ada foto kegiatan di galeri.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                  {galeriKegiatan.map((item) => (
+                    <div key={item.id} className="bg-slate-50 border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+                      <div className="aspect-[4/3] bg-slate-200 overflow-hidden">
+                        <img
+                          src={item.foto_url}
+                          alt={item.judul}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1515187029135-18ee286d815b?auto=format&fit=crop&w=600&q=80';
+                          }}
+                        />
+                      </div>
+                      <div className="p-4 space-y-3">
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between gap-2">
+                            <h4 className="font-extrabold text-slate-850 text-sm leading-snug line-clamp-2">{item.judul}</h4>
+                            <span className={`shrink-0 text-[9px] font-black px-2 py-0.5 rounded-full ${
+                              item.is_active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-500'
+                            }`}>
+                              {item.is_active ? 'AKTIF' : 'NONAKTIF'}
+                            </span>
+                          </div>
+                          <p className="text-[10px] text-slate-400 font-bold">
+                            {item.tanggal} {item.lokasi ? `- ${item.lokasi}` : ''}
+                          </p>
+                          {item.deskripsi && (
+                            <p className="text-xs text-slate-500 font-semibold leading-relaxed line-clamp-2">{item.deskripsi}</p>
+                          )}
+                        </div>
+                        <div className="flex justify-end gap-2 pt-2 border-t border-slate-200/70">
+                          <button
+                            type="button"
+                            onClick={() => handleEditGaleri(item)}
+                            className="bg-white p-2 border border-slate-200 text-slate-700 hover:text-blue-600 rounded-lg hover:shadow"
+                            title="Edit foto kegiatan"
+                          >
+                            <Edit3 className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteGaleri(item.id)}
+                            className="bg-white p-2 border border-slate-200 text-red-600 hover:bg-red-50 rounded-lg hover:shadow"
+                            title="Hapus foto kegiatan"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {galeriModalOpen && (
+              <div
+                onClick={() => setGaleriModalOpen(false)}
+                className="fixed inset-0 bg-slate-950/65 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fade-in cursor-pointer"
+              >
+                <div
+                  onClick={(e) => e.stopPropagation()}
+                  className="bg-white rounded-3xl shadow-2xl w-full max-w-lg max-h-[85vh] overflow-y-auto p-6 sm:p-8 space-y-5 sm:space-y-6 border border-slate-100/10 cursor-default"
+                >
+                  <div className="mx-auto w-12 h-1.5 bg-slate-250 rounded-full mb-1 sm:hidden shrink-0" />
+                  <div className="flex justify-between items-center border-b border-slate-100 pb-3 sm:pb-4 gap-4">
+                    <h3 className="text-base sm:text-lg font-extrabold text-slate-800 uppercase tracking-tight">
+                      {editingGaleri ? 'Edit Foto Galeri' : 'Tambah Foto Kegiatan'}
+                    </h3>
+                    <button
+                      type="button"
+                      onClick={() => setGaleriModalOpen(false)}
+                      className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 px-4 py-1.5 rounded-full font-bold shrink-0 transition-all hover:scale-105"
+                    >
+                      Tutup
+                    </button>
+                  </div>
+
+                  <form onSubmit={handleSaveGaleri} className="space-y-4">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-extrabold text-slate-500 uppercase">Judul Kegiatan</label>
+                      <input
+                        type="text"
+                        value={newGaleri.judul}
+                        onChange={(e) => setNewGaleri({ ...newGaleri, judul: e.target.value })}
+                        className="w-full text-xs p-2.5 border border-slate-200 bg-slate-50 rounded-lg text-slate-700 font-semibold focus:bg-white"
+                        placeholder="Contoh: Pelatihan Digitalisasi UMKM"
+                        required
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-extrabold text-slate-500 uppercase">Tanggal Kegiatan</label>
+                        <input
+                          type="date"
+                          value={newGaleri.tanggal}
+                          onChange={(e) => setNewGaleri({ ...newGaleri, tanggal: e.target.value })}
+                          className="w-full text-xs p-2.5 border border-slate-200 bg-slate-50 rounded-lg text-slate-700 font-semibold focus:bg-white"
+                          required
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-extrabold text-slate-500 uppercase">Lokasi</label>
+                        <input
+                          type="text"
+                          value={newGaleri.lokasi || ''}
+                          onChange={(e) => setNewGaleri({ ...newGaleri, lokasi: e.target.value })}
+                          className="w-full text-xs p-2.5 border border-slate-200 bg-slate-50 rounded-lg text-slate-700 font-semibold focus:bg-white"
+                          placeholder="Contoh: Singaparna"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-extrabold text-slate-500 uppercase">Deskripsi Singkat</label>
+                      <textarea
+                        value={newGaleri.deskripsi || ''}
+                        onChange={(e) => setNewGaleri({ ...newGaleri, deskripsi: e.target.value })}
+                        className="w-full text-xs p-2.5 border border-slate-200 bg-slate-50 rounded-lg text-slate-700 font-semibold focus:bg-white"
+                        rows={3}
+                        placeholder="Ringkasan kegiatan atau dokumentasi..."
+                      />
+                    </div>
+
+                    <ImageUploader
+                      value={newGaleri.foto_url || ''}
+                      onChange={(url) => setNewGaleri({ ...newGaleri, foto_url: url })}
+                      label="Foto Kegiatan"
+                    />
+
+                    <label className="flex items-center gap-2 text-xs text-slate-600 font-bold bg-slate-50 border border-slate-200 rounded-xl p-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={newGaleri.is_active !== false}
+                        onChange={(e) => setNewGaleri({ ...newGaleri, is_active: e.target.checked })}
+                        className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      Tampilkan di Landing Page
+                    </label>
+
+                    <div className="flex gap-2 justify-end pt-4 border-t border-slate-100">
+                      <button
+                        type="button"
+                        onClick={() => setGaleriModalOpen(false)}
+                        className="text-xs font-bold px-4 py-2.5 border bg-red-50 text-red-600 rounded-full hover:bg-red-100"
+                      >
+                        Batal
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={!newGaleri.foto_url}
+                        className="text-xs bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-2.5 rounded-full shadow disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {editingGaleri ? 'Perbarui Foto' : 'Simpan Foto'}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
           </div>
         )}
 

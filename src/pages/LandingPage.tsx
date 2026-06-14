@@ -27,7 +27,7 @@ import {
   ShieldAlert
 } from 'lucide-react';
 import { dbService, DEFAULT_PROFIL } from '@/src/lib/db';
-import { ProfilOrganisasi, PKFKP, Berita, Agenda, Kontak, UMKM } from '@/src/types';
+import { ProfilOrganisasi, PKFKP, Berita, Agenda, GaleriKegiatan, Kontak, UMKM } from '@/src/types';
 import { getWhatsAppLink } from '@/src/lib/utils';
 import ImageUploader from '@/src/components/ImageUploader';
 
@@ -40,6 +40,7 @@ export default function LandingPage() {
   const [allUmkms, setAllUmkms] = useState<UMKM[]>([]);
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
   const [agendas, setAgendas] = useState<Agenda[]>([]);
+  const [galeriKegiatan, setGaleriKegiatan] = useState<GaleriKegiatan[]>([]);
   const [kontak, setKontak] = useState<Kontak | null>(null);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -128,11 +129,12 @@ export default function LandingPage() {
   useEffect(() => {
     async function loadData() {
       try {
-        const [profData, pkData, beritaData, agendaData, kontakData, umkmData] = await Promise.all([
+        const [profData, pkData, beritaData, agendaData, galeriData, kontakData, umkmData] = await Promise.all([
           dbService.getProfil(),
           dbService.getPKs(),
           dbService.getBerita(),
           dbService.getAgendas(),
+          dbService.getGaleriKegiatan(),
           dbService.getKontak(),
           dbService.getUMKMs()
         ]);
@@ -142,6 +144,12 @@ export default function LandingPage() {
         setAllBeritas(published);
         setBeritas(published.slice(0, 3));
         setAgendas(agendaData.filter(a => a.is_active).slice(0, 3));
+        setGaleriKegiatan(
+          galeriData
+            .filter(item => item.is_active)
+            .sort((a, b) => (b.tanggal || '').localeCompare(a.tanggal || ''))
+            .slice(0, 6)
+        );
         setKontak(kontakData);
         setAllUmkms(umkmData);
       } catch (error) {
@@ -774,6 +782,70 @@ export default function LandingPage() {
                     </p>
                   )}
                 </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* 3.7 GALERI KEGIATAN FKP */}
+      {galeriKegiatan.length > 0 && (
+        <section className="py-20 bg-slate-50" id="galeri-kegiatan">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-12">
+              <div>
+                <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 pb-2">
+                  Galeri Kegiatan FKP
+                </h2>
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">
+                  Dokumentasi kegiatan, pelatihan, dan kolaborasi wirausaha muda
+                </p>
+              </div>
+              <span className="text-xs font-bold bg-white border border-slate-200 text-slate-600 px-4 py-2 rounded-full w-fit">
+                {galeriKegiatan.length} Dokumentasi Terbaru
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {galeriKegiatan.map((item, index) => (
+                <article
+                  key={item.id}
+                  className={`group bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-all ${
+                    index === 0 ? 'sm:col-span-2 lg:col-span-2' : ''
+                  }`}
+                >
+                  <div className={`${index === 0 ? 'aspect-[16/9]' : 'aspect-[4/3]'} bg-slate-200 overflow-hidden`}>
+                    <img
+                      src={item.foto_url}
+                      alt={item.judul}
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                      loading="lazy"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1515187029135-18ee286d815b?auto=format&fit=crop&w=800&q=80';
+                      }}
+                    />
+                  </div>
+                  <div className="p-5 space-y-3">
+                    <div className="flex flex-wrap items-center gap-2 text-[10px] font-black uppercase tracking-wider">
+                      <span className="bg-blue-50 text-blue-600 px-2.5 py-1 rounded-full">
+                        {item.tanggal}
+                      </span>
+                      {item.lokasi && (
+                        <span className="bg-slate-100 text-slate-500 px-2.5 py-1 rounded-full">
+                          {item.lokasi}
+                        </span>
+                      )}
+                    </div>
+                    <h3 className="text-base font-extrabold text-slate-900 leading-snug line-clamp-2">
+                      {item.judul}
+                    </h3>
+                    {item.deskripsi && (
+                      <p className="text-xs text-slate-500 font-semibold leading-relaxed line-clamp-3">
+                        {item.deskripsi}
+                      </p>
+                    )}
+                  </div>
+                </article>
               ))}
             </div>
           </div>

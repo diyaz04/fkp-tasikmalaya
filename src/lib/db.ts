@@ -23,6 +23,7 @@ import {
   PKFKP, 
   Berita, 
   Agenda, 
+  GaleriKegiatan,
   UMKM, 
   Kontak 
 } from '@/src/types';
@@ -219,6 +220,8 @@ const DEFAULT_AGENDA: Agenda[] = [
   }
 ];
 
+const DEFAULT_GALERI_KEGIATAN: GaleriKegiatan[] = [];
+
 const DEFAULT_UMKM: UMKM[] = [
   {
     id: "u_1",
@@ -332,6 +335,7 @@ if (typeof window !== 'undefined') {
   getLocal<PKFKP[]>('fkp_pks', DEFAULT_PKS);
   getLocal<Berita[]>('fkp_berita', DEFAULT_BERITA);
   getLocal<Agenda[]>('fkp_agenda', DEFAULT_AGENDA);
+  getLocal<GaleriKegiatan[]>('fkp_galeri_kegiatan', DEFAULT_GALERI_KEGIATAN);
   getLocal<UMKM[]>('fkp_umkm', DEFAULT_UMKM);
   getLocal<Kontak>('fkp_kontak', DEFAULT_KONTAK);
 }
@@ -560,6 +564,58 @@ export const dbService = {
     const agenda = getLocal<Agenda[]>('fkp_agenda', DEFAULT_AGENDA);
     const filtered = agenda.filter(a => a.id !== id);
     setLocal('fkp_agenda', filtered);
+  },
+
+  // GALERI KEGIATAN
+  async getGaleriKegiatan(): Promise<GaleriKegiatan[]> {
+    if (isFirebaseConfigured) {
+      const path = 'galeri_kegiatan';
+      try {
+        const snap = await getDocs(collection(db, path));
+        const res: GaleriKegiatan[] = [];
+        snap.forEach(d => res.push(d.data() as GaleriKegiatan));
+        return res.length > 0 ? res : DEFAULT_GALERI_KEGIATAN;
+      } catch (error) {
+        handleFirestoreError(error, OperationType.LIST, path);
+      }
+    }
+    return getLocal<GaleriKegiatan[]>('fkp_galeri_kegiatan', DEFAULT_GALERI_KEGIATAN);
+  },
+
+  async saveGaleriKegiatan(data: GaleriKegiatan): Promise<GaleriKegiatan> {
+    if (isFirebaseConfigured) {
+      const path = `galeri_kegiatan/${data.id}`;
+      try {
+        await setDoc(doc(db, 'galeri_kegiatan', data.id), data);
+        return data;
+      } catch (error) {
+        handleFirestoreError(error, OperationType.WRITE, path);
+      }
+    }
+    const galeri = getLocal<GaleriKegiatan[]>('fkp_galeri_kegiatan', DEFAULT_GALERI_KEGIATAN);
+    const idx = galeri.findIndex(item => item.id === data.id);
+    if (idx !== -1) {
+      galeri[idx] = data;
+    } else {
+      galeri.push(data);
+    }
+    setLocal('fkp_galeri_kegiatan', galeri);
+    return data;
+  },
+
+  async deleteGaleriKegiatan(id: string): Promise<void> {
+    if (isFirebaseConfigured) {
+      const path = `galeri_kegiatan/${id}`;
+      try {
+        await deleteDoc(doc(db, 'galeri_kegiatan', id));
+        return;
+      } catch (error) {
+        handleFirestoreError(error, OperationType.DELETE, path);
+      }
+    }
+    const galeri = getLocal<GaleriKegiatan[]>('fkp_galeri_kegiatan', DEFAULT_GALERI_KEGIATAN);
+    const filtered = galeri.filter(item => item.id !== id);
+    setLocal('fkp_galeri_kegiatan', filtered);
   },
 
   // UMKM

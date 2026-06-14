@@ -24,12 +24,20 @@ export interface ProfilOrganisasi {
   foto_bendahara_dpd?: string;
   updated_at: string;
   featured_umkm_ids?: string[];
+  struktur_biro?: BiroOrganisasi[];
 }
 
 export interface PengurusPK {
   jabatan: string;
   nama: string;
   foto_url: string;
+}
+
+export interface BiroOrganisasi {
+  id: string;
+  nama_biro: string;
+  deskripsi?: string;
+  jajaran: PengurusPK[];
 }
 
 export interface PKFKP {

@@ -40,7 +40,9 @@ import {
   Berita, 
   Agenda, 
   UMKM, 
-  Kontak 
+  Kontak,
+  BiroOrganisasi,
+  PengurusPK
 } from '@/src/types';
 
 type TabType = 'overview' | 'profil' | 'hero' | 'berita' | 'pk' | 'agenda' | 'umkm' | 'kontak';
@@ -192,6 +194,69 @@ export default function DPDDashboard() {
     if (!profil) return;
     const newMisi = profil.misi.filter((_, i) => i !== index);
     setProfil({ ...profil, misi: newMisi });
+  };
+
+  const handleAddBiro = () => {
+    if (!profil) return;
+    const newBiro: BiroOrganisasi = {
+      id: `biro_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      nama_biro: '',
+      deskripsi: '',
+      jajaran: []
+    };
+    setProfil({
+      ...profil,
+      struktur_biro: [...(profil.struktur_biro || []), newBiro]
+    });
+  };
+
+  const handleUpdateBiro = (biroIndex: number, data: Partial<BiroOrganisasi>) => {
+    if (!profil) return;
+    const strukturBiro = [...(profil.struktur_biro || [])];
+    strukturBiro[biroIndex] = { ...strukturBiro[biroIndex], ...data };
+    setProfil({ ...profil, struktur_biro: strukturBiro });
+  };
+
+  const handleRemoveBiro = (biroIndex: number) => {
+    if (!profil) return;
+    const strukturBiro = (profil.struktur_biro || []).filter((_, index) => index !== biroIndex);
+    setProfil({ ...profil, struktur_biro: strukturBiro });
+  };
+
+  const handleAddBiroMember = (biroIndex: number) => {
+    if (!profil) return;
+    const strukturBiro = [...(profil.struktur_biro || [])];
+    const targetBiro = strukturBiro[biroIndex];
+    if (!targetBiro) return;
+    const newMember: PengurusPK = { jabatan: '', nama: '', foto_url: '' };
+    strukturBiro[biroIndex] = {
+      ...targetBiro,
+      jajaran: [...(targetBiro.jajaran || []), newMember]
+    };
+    setProfil({ ...profil, struktur_biro: strukturBiro });
+  };
+
+  const handleUpdateBiroMember = (biroIndex: number, memberIndex: number, data: Partial<PengurusPK>) => {
+    if (!profil) return;
+    const strukturBiro = [...(profil.struktur_biro || [])];
+    const targetBiro = strukturBiro[biroIndex];
+    if (!targetBiro) return;
+    const jajaran = [...(targetBiro.jajaran || [])];
+    jajaran[memberIndex] = { ...jajaran[memberIndex], ...data };
+    strukturBiro[biroIndex] = { ...targetBiro, jajaran };
+    setProfil({ ...profil, struktur_biro: strukturBiro });
+  };
+
+  const handleRemoveBiroMember = (biroIndex: number, memberIndex: number) => {
+    if (!profil) return;
+    const strukturBiro = [...(profil.struktur_biro || [])];
+    const targetBiro = strukturBiro[biroIndex];
+    if (!targetBiro) return;
+    strukturBiro[biroIndex] = {
+      ...targetBiro,
+      jajaran: (targetBiro.jajaran || []).filter((_, index) => index !== memberIndex)
+    };
+    setProfil({ ...profil, struktur_biro: strukturBiro });
   };
 
   // ==========================================
@@ -1119,6 +1184,152 @@ export default function DPDDashboard() {
                   />
                 </div>
               </div>
+            </div>
+
+            {/* Struktur Organisasi Biro DPD */}
+            <div className="border-t border-slate-100 pt-6 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <LayoutGrid className="w-4 h-4 text-cyan-600" />
+                    <h4 className="text-xs font-black text-slate-800 uppercase tracking-widest">
+                      Struktur Organisasi Biro DPD
+                    </h4>
+                  </div>
+                  <p className="text-[10px] text-slate-400 font-bold leading-relaxed">
+                    Tambahkan Biro, lalu isi jajaran pengurus di bawahnya dengan jabatan, nama, dan foto.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleAddBiro}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-full text-xs font-bold inline-flex items-center justify-center gap-1.5"
+                >
+                  <Plus className="w-4 h-4" />
+                  Tambah Biro
+                </button>
+              </div>
+
+              {(!profil.struktur_biro || profil.struktur_biro.length === 0) ? (
+                <div className="border border-dashed border-slate-200 rounded-2xl p-8 text-center bg-slate-50/60">
+                  <p className="text-xs text-slate-400 font-semibold">
+                    Belum ada struktur Biro. Klik Tambah Biro untuk mulai mengisi jajaran organisasi.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-5">
+                  {(profil.struktur_biro || []).map((biro, biroIndex) => (
+                    <div key={biro.id || biroIndex} className="border border-slate-200 bg-slate-50/50 rounded-2xl p-4 sm:p-5 space-y-4">
+                      <div className="flex flex-col lg:flex-row gap-3 lg:items-start">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 flex-1">
+                          <div className="space-y-1.5">
+                            <label className="text-[10px] font-extrabold text-slate-500 uppercase block">Nama Biro / Bidang</label>
+                            <input
+                              type="text"
+                              value={biro.nama_biro}
+                              onChange={(e) => handleUpdateBiro(biroIndex, { nama_biro: e.target.value })}
+                              className="w-full text-xs p-2.5 border border-slate-200 bg-white rounded-lg text-slate-700 font-semibold focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                              placeholder="Contoh: Biro Humas & Publikasi"
+                              required
+                            />
+                          </div>
+                          <div className="space-y-1.5">
+                            <label className="text-[10px] font-extrabold text-slate-500 uppercase block">Keterangan Singkat</label>
+                            <input
+                              type="text"
+                              value={biro.deskripsi || ''}
+                              onChange={(e) => handleUpdateBiro(biroIndex, { deskripsi: e.target.value })}
+                              className="w-full text-xs p-2.5 border border-slate-200 bg-white rounded-lg text-slate-700 font-semibold focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                              placeholder="Contoh: Mengelola publikasi, media, dan dokumentasi"
+                            />
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveBiro(biroIndex)}
+                          className="text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 border border-red-100 px-3 py-2 rounded-lg inline-flex items-center justify-center gap-1.5"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          Hapus Biro
+                        </button>
+                      </div>
+
+                      <div className="border-t border-slate-200/70 pt-4 space-y-3">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                          <span className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">
+                            Jajaran di bawah {biro.nama_biro || `Biro #${biroIndex + 1}`} ({biro.jajaran?.length || 0})
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleAddBiroMember(biroIndex)}
+                            className="text-xs font-bold text-blue-600 bg-white border border-blue-100 px-3 py-1.5 rounded-lg hover:bg-blue-50 inline-flex items-center justify-center gap-1"
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                            Tambah Jajaran
+                          </button>
+                        </div>
+
+                        {(!biro.jajaran || biro.jajaran.length === 0) ? (
+                          <p className="text-xs text-slate-400 font-semibold py-5 text-center border border-dashed border-slate-200 rounded-xl bg-white">
+                            Belum ada jajaran pada Biro ini.
+                          </p>
+                        ) : (
+                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                            {(biro.jajaran || []).map((member, memberIndex) => (
+                              <div key={`${biro.id || biroIndex}_${memberIndex}`} className="bg-white border border-slate-200 rounded-xl p-4 space-y-3">
+                                <div className="flex items-center justify-between gap-3">
+                                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">
+                                    Jajaran #{memberIndex + 1}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemoveBiroMember(biroIndex, memberIndex)}
+                                    className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg border border-transparent hover:border-red-100"
+                                    title="Hapus jajaran"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                </div>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                  <div className="space-y-1.5">
+                                    <label className="text-[10px] font-extrabold text-slate-500 uppercase block">Jabatan</label>
+                                    <input
+                                      type="text"
+                                      value={member.jabatan}
+                                      onChange={(e) => handleUpdateBiroMember(biroIndex, memberIndex, { jabatan: e.target.value })}
+                                      className="w-full text-xs p-2.5 border border-slate-200 bg-slate-50 rounded-lg text-slate-700 font-semibold focus:bg-white focus:border-blue-500"
+                                      placeholder="Contoh: Kepala Biro"
+                                      required
+                                    />
+                                  </div>
+                                  <div className="space-y-1.5">
+                                    <label className="text-[10px] font-extrabold text-slate-500 uppercase block">Nama Lengkap</label>
+                                    <input
+                                      type="text"
+                                      value={member.nama}
+                                      onChange={(e) => handleUpdateBiroMember(biroIndex, memberIndex, { nama: e.target.value })}
+                                      className="w-full text-xs p-2.5 border border-slate-200 bg-slate-50 rounded-lg text-slate-700 font-semibold focus:bg-white focus:border-blue-500"
+                                      placeholder="Nama pengurus"
+                                      required
+                                    />
+                                  </div>
+                                </div>
+
+                                <ImageUploader
+                                  value={member.foto_url || ''}
+                                  onChange={(url) => handleUpdateBiroMember(biroIndex, memberIndex, { foto_url: url })}
+                                  label="Foto Pengurus"
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="flex justify-end pt-4">

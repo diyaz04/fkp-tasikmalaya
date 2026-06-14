@@ -707,6 +707,79 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* 3.6 STRUKTUR BIRO DPD */}
+      {profil?.struktur_biro && profil.struktur_biro.length > 0 && (
+        <section className="py-20 bg-white" id="struktur-biro">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center max-w-3xl mx-auto mb-14">
+              <h2 className="text-3xl font-extrabold text-slate-900 pb-2">
+                Struktur Biro DPD
+              </h2>
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-2">
+                Jajaran bidang dan biro organisasi FKP Kabupaten Tasikmalaya
+              </p>
+            </div>
+
+            <div className="space-y-8">
+              {profil.struktur_biro.map((biro, biroIndex) => (
+                <div key={biro.id || biroIndex} className="border border-slate-200 rounded-2xl p-5 sm:p-6 bg-slate-50/50">
+                  <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3 mb-5">
+                    <div>
+                      <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest">
+                        Biro #{biroIndex + 1}
+                      </span>
+                      <h3 className="text-lg sm:text-xl font-extrabold text-slate-900 mt-1">
+                        {biro.nama_biro}
+                      </h3>
+                      {biro.deskripsi && (
+                        <p className="text-xs sm:text-sm text-slate-500 font-semibold mt-1">
+                          {biro.deskripsi}
+                        </p>
+                      )}
+                    </div>
+                    <span className="text-[10px] font-bold bg-white border border-slate-200 text-slate-500 px-3 py-1.5 rounded-full w-fit">
+                      {biro.jajaran?.length || 0} Pengurus
+                    </span>
+                  </div>
+
+                  {biro.jajaran && biro.jajaran.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {biro.jajaran.map((member, memberIndex) => (
+                        <div key={`${biro.id || biroIndex}_${memberIndex}`} className="bg-white border border-slate-100 rounded-xl p-4 flex items-center gap-3 shadow-sm">
+                          <div className="w-14 h-14 rounded-full overflow-hidden bg-slate-100 border border-slate-200 shrink-0">
+                            <img
+                              src={member.foto_url || 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcROdFy3D0_qsicyRaMCCGt4DeFcIPJ37FduSQ&s'}
+                              alt={member.nama}
+                              className="w-full h-full object-cover"
+                              referrerPolicy="no-referrer"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcROdFy3D0_qsicyRaMCCGt4DeFcIPJ37FduSQ&s';
+                              }}
+                            />
+                          </div>
+                          <div className="min-w-0">
+                            <h4 className="text-sm font-extrabold text-slate-900 truncate">
+                              {member.nama}
+                            </h4>
+                            <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider mt-0.5">
+                              {member.jabatan}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-slate-400 font-semibold py-5 text-center border border-dashed border-slate-200 rounded-xl bg-white">
+                      Jajaran Biro ini belum dipublikasikan.
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* 4. DIREKTORI PK KECAMATAN */}
       <section className="py-20 bg-white" id="pk-kecamatan">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

@@ -1,0 +1,6 @@
+{
+  "name": "Forum Kewirausahaan Pemuda Kabupaten Tasikmalaya",
+  "description": "Website resmi Forum Kewirausahaan Pemuda (FKP) Kabupaten Tasikmalaya, wadah wirausaha muda di Kabupaten Tasikmalaya, Jawa Barat.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

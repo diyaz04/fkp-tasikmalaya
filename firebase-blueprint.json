@@ -1,0 +1,146 @@
+{
+  "entities": {
+    "ProfilOrganisasi": {
+      "title": "ProfilOrganisasi",
+      "description": "Profil organisasi Forum Kewirausahaan Pemuda (FKP) Kabupaten Tasikmalaya",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "nama_organisasi": { "type": "string" },
+        "singkatan": { "type": "string" },
+        "visi": { "type": "string" },
+        "misi": { "type": "array" },
+        "sejarah": { "type": "string" },
+        "logo_url": { "type": "string" },
+        "hero_title": { "type": "string" },
+        "hero_subtitle": { "type": "string" },
+        "hero_bg_url": { "type": "string" },
+        "updated_at": { "type": "string" },
+        "featured_umkm_ids": { "type": "array" }
+      },
+      "required": ["id", "nama_organisasi", "singkatan", "visi", "misi", "sejarah"]
+    },
+    "PKFKP": {
+      "title": "PKFKP",
+      "description": "Kecamatan / Pengurus Kecamatan PK FKP",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "user_id": { "type": "string" },
+        "nama_kecamatan": { "type": "string" },
+        "foto_ketua_url": { "type": "string" },
+        "nama_ketua": { "type": "string" },
+        "deskripsi": { "type": "string" },
+        "pengurus": { "type": "array" },
+        "is_active": { "type": "boolean" },
+        "created_at": { "type": "string" },
+        "email": { "type": "string" }
+      },
+      "required": ["id", "nama_kecamatan", "nama_ketua", "is_active"]
+    },
+    "Berita": {
+      "title": "Berita",
+      "description": "Berita / Artikel kewirausahaan pemuda",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "judul": { "type": "string" },
+        "slug": { "type": "string" },
+        "konten": { "type": "string" },
+        "thumbnail_url": { "type": "string" },
+        "penulis": { "type": "string" },
+        "sumber": { "type": "string" },
+        "pk_id": { "type": "string" },
+        "status": { "type": "string" },
+        "catatan_review": { "type": "string" },
+        "published_at": { "type": "string" },
+        "created_at": { "type": "string" }
+      },
+      "required": ["id", "judul", "slug", "konten", "penulis", "sumber", "status"]
+    },
+    "Agenda": {
+      "title": "Agenda",
+      "description": "Event / Kegiatan kewirausahaan pemuda",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "judul": { "type": "string" },
+        "deskripsi": { "type": "string" },
+        "tanggal_mulai": { "type": "string" },
+        "tanggal_selesai": { "type": "string" },
+        "lokasi": { "type": "string" },
+        "poster_url": { "type": "string" },
+        "is_active": { "type": "boolean" },
+        "created_at": { "type": "string" }
+      },
+      "required": ["id", "judul", "tanggal_mulai", "lokasi", "is_active"]
+    },
+    "UMKM": {
+      "title": "UMKM",
+      "description": "Daftar usaha mikro kecil menengah binaan FKP",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "pk_id": { "type": "string" },
+        "nama_usaha": { "type": "string" },
+        "nama_pemilik": { "type": "string" },
+        "kategori": { "type": "string" },
+        "deskripsi": { "type": "string" },
+        "produk_jasa": { "type": "array" },
+        "foto_url": { "type": "string" },
+        "no_whatsapp": { "type": "string" },
+        "kecamatan": { "type": "string" },
+        "is_active": { "type": "boolean" },
+        "created_at": { "type": "string" },
+        "shu_url": { "type": "string" },
+        "nib_url": { "type": "string" }
+      },
+      "required": ["id", "pk_id", "nama_usaha", "nama_pemilik", "kategori", "no_whatsapp"]
+    },
+    "Kontak": {
+      "title": "Kontak",
+      "description": "Kontak dan Sosial Media DPD FKP",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "alamat": { "type": "string" },
+        "email": { "type": "string" },
+        "telepon": { "type": "string" },
+        "whatsapp": { "type": "string" },
+        "instagram": { "type": "string" },
+        "facebook": { "type": "string" },
+        "youtube": { "type": "string" },
+        "tiktok": { "type": "string" },
+        "embed_maps": { "type": "string" },
+        "updated_at": { "type": "string" }
+      },
+      "required": ["id", "alamat", "email", "whatsapp"]
+    }
+  },
+  "firestore": {
+    "profil_organisasi": {
+      "schema": "ProfilOrganisasi",
+      "description": "Koleksi profil organisasi utama (hanya satu dokumen: fkp_dpd_profile_default)"
+    },
+    "pk_fkp": {
+      "schema": "PKFKP",
+      "description": "Koleksi Pengurus Kecamatan (PK) FKP Kabupaten Tasikmalaya"
+    },
+    "berita": {
+      "schema": "Berita",
+      "description": "Materi berita, artikel, dan produk literasi kolaboratif"
+    },
+    "agenda": {
+      "schema": "Agenda",
+      "description": "Agenda dan kalender kegiatan DPD & PK FKP"
+    },
+    "umkm": {
+      "schema": "UMKM",
+      "description": "Direktori UMKM binaan pemuda wirausaha Kabupaten Tasikmalaya"
+    },
+    "kontak": {
+      "schema": "Kontak",
+      "description": "Informasi kontak sekretariat DPD dan pranala sosial media"
+    }
+  }
+}

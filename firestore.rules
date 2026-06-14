@@ -1,0 +1,113 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // 1. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Common Helpers
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isEmailVerified() {
+      return isSignedIn();
+    }
+
+    function isAdmin() {
+      return isEmailVerified() && (
+        request.auth.token.email.lower() == "admindpdfkp@gmail.com" || 
+        request.auth.token.email.lower() == "sriwulandari16092000@gmail.com"
+      );
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isPKOwner(pkId) {
+      return isEmailVerified() && 
+        exists(/databases/$(database)/documents/pk_fkp/$(pkId)) && (
+          get(/databases/$(database)/documents/pk_fkp/$(pkId)).data.email == request.auth.token.email ||
+          (
+            get(/databases/$(database)/documents/pk_fkp/$(pkId)).data.email is string &&
+            get(/databases/$(database)/documents/pk_fkp/$(pkId)).data.email.lower() == request.auth.token.email.lower()
+          )
+        );
+    }
+
+    // 2. Organization Profile
+    match /profil_organisasi/{id} {
+      allow read: if true; // Publicly readable
+      allow write: if isAdmin();
+    }
+
+    // 3. Contact & Socials
+    match /kontak/{id} {
+      allow read: if true; // Publicly readable
+      allow write: if isAdmin();
+    }
+
+    // 4. PK FKP (Kecamatan accounts)
+    match /pk_fkp/{pkId} {
+      allow read: if true; // Publicly viewable
+      allow create: if isEmailVerified() && (
+        isAdmin() || 
+        (request.resource.data.email is string && request.resource.data.email.lower() == request.auth.token.email.lower())
+      );
+      allow update: if isEmailVerified() && (
+        isAdmin() || 
+        (resource.data.email is string && resource.data.email.lower() == request.auth.token.email.lower()) ||
+        (request.resource.data.email is string && request.resource.data.email.lower() == request.auth.token.email.lower())
+      );
+      allow delete: if isAdmin(); // Only DPD Admin can delete PK accounts
+    }
+
+    // 5. Berita
+    match /berita/{beritaId} {
+      allow read: if true; // Publicly readable
+      
+      allow create: if isEmailVerified() && (
+        isAdmin() || 
+        (request.resource.data.pk_id != null && isPKOwner(request.resource.data.pk_id) && request.resource.data.status == "pending")
+      );
+
+      allow update: if isEmailVerified() && (
+        isAdmin() || 
+        (resource.data.pk_id != null && isPKOwner(resource.data.pk_id) && 
+         request.resource.data.status == "pending" && 
+         request.resource.data.pk_id == resource.data.pk_id)
+      );
+
+      allow delete: if isAdmin() || (resource.data.pk_id != null && isPKOwner(resource.data.pk_id));
+    }
+
+    // 6. Agenda
+    match /agenda/{agendaId} {
+      allow read: if true; // Public calendar
+      allow write: if isAdmin(); // Only admin can publish/edit agenda
+    }
+
+    // 7. UMKM Directory
+    match /umkm/{umkmId} {
+      allow read: if true; // Public directory
+      
+      allow create: if (request.resource.data.status == "pending") || (isEmailVerified() && (
+        isAdmin() || 
+        (request.resource.data.pk_id != null && isPKOwner(request.resource.data.pk_id))
+      ));
+
+      allow update: if isEmailVerified() && (
+        isAdmin() || 
+        (resource.data.pk_id != null && isPKOwner(resource.data.pk_id) && request.resource.data.pk_id == resource.data.pk_id)
+      );
+
+      allow delete: if isEmailVerified() && (
+        isAdmin() || 
+        (resource.data.pk_id != null && isPKOwner(resource.data.pk_id))
+      );
+    }
+  }
+}

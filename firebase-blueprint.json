@@ -34,7 +34,10 @@
         "pengurus": { "type": "array" },
         "is_active": { "type": "boolean" },
         "created_at": { "type": "string" },
-        "email": { "type": "string" }
+        "email": { "type": "string" },
+        "password": { "type": "string" },
+        "password_updated_at": { "type": "string" },
+        "password_updated_by": { "type": "string" }
       },
       "required": ["id", "nama_kecamatan", "nama_ketua", "is_active"]
     },

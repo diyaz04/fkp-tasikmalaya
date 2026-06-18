@@ -16,6 +16,7 @@ import {
   Check, 
   AlertCircle,
   HelpCircle,
+  Lock,
   Users,
   Menu,
   X,
@@ -24,6 +25,7 @@ import {
 } from 'lucide-react';
 import { useAuthStore } from '@/src/store/authStore';
 import { dbService } from '@/src/lib/db';
+import { changeCurrentUserPassword, getPasswordChangeMessage } from '@/src/lib/authPassword';
 import ImageUploader from '@/src/components/ImageUploader';
 import { 
   PKFKP, 
@@ -53,6 +55,12 @@ export default function PKDashboard() {
 
   // Success Notification state
   const [successMsg, setSuccessMsg] = useState('');
+  const [passwordForm, setPasswordForm] = useState({
+    current: '',
+    next: '',
+    confirm: ''
+  });
+  const [passwordSaving, setPasswordSaving] = useState(false);
 
   // Edit states for Pengurus List
   const [newStaffName, setNewStaffName] = useState('');
@@ -151,6 +159,54 @@ export default function PKDashboard() {
     const updated = (pk.pengurus || []).filter((_, i) => i !== index);
     setPk({ ...pk, pengurus: updated });
     triggerSuccess('Anggota pengurus dihapus. Ingat untuk menekan tombol Simpan!');
+  };
+
+  const handleChangePKPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!pk) return;
+    if (!passwordForm.current || !passwordForm.next || !passwordForm.confirm) {
+      alert('Lengkapi password lama, password baru, dan konfirmasi password.');
+      return;
+    }
+    if (passwordForm.next.length < 6) {
+      alert('Password baru minimal 6 karakter.');
+      return;
+    }
+    if (passwordForm.next !== passwordForm.confirm) {
+      alert('Konfirmasi password baru belum sama.');
+      return;
+    }
+
+    setPasswordSaving(true);
+    try {
+      await changeCurrentUserPassword(passwordForm.current, passwordForm.next);
+      const updatedPK: PKFKP = {
+        ...pk,
+        password: passwordForm.next,
+        password_updated_at: new Date().toISOString(),
+        password_updated_by: user?.email || pk.email || null
+      };
+
+      try {
+        await dbService.savePK(updatedPK);
+      } catch (saveErr) {
+        try {
+          await changeCurrentUserPassword(passwordForm.next, passwordForm.current);
+        } catch (rollbackErr) {
+          console.error('Gagal rollback password Firebase setelah gagal simpan PK:', rollbackErr);
+        }
+        throw saveErr;
+      }
+
+      setPk(updatedPK);
+      setPasswordForm({ current: '', next: '', confirm: '' });
+      triggerSuccess('Password PK berhasil diganti dan tersinkron ke dashboard DPD!');
+    } catch (err: any) {
+      console.error(err);
+      alert(getPasswordChangeMessage(err));
+    } finally {
+      setPasswordSaving(false);
+    }
   };
 
   // ==========================================
@@ -519,14 +575,18 @@ export default function PKDashboard() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-[11px] font-extrabold text-slate-500 uppercase">Kata Sandi Akses Baru</label>
+                  <label className="text-[11px] font-extrabold text-slate-500 uppercase">Kata Sandi Terdaftar di DPD</label>
                   <input
                     type="text"
                     value={pk.password || ''}
-                    onChange={(e) => setPk({ ...pk, password: e.target.value })}
-                    className="w-full text-xs p-2.5 border border-slate-200 bg-slate-50 rounded-lg text-slate-700 font-semibold text-rose-600 focus:text-slate-800"
-                    placeholder="Sandi akses...."
+                    className="w-full text-xs p-2.5 border border-slate-200 bg-slate-100 rounded-lg text-rose-600 font-semibold cursor-not-allowed"
+                    disabled
                   />
+                  {pk.password_updated_at && (
+                    <span className="text-[9px] text-slate-400 font-bold block">
+                      Terakhir diganti: {new Date(pk.password_updated_at).toLocaleString('id-ID')}
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -592,6 +652,64 @@ export default function PKDashboard() {
                   className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-cyan-500 text-white font-bold text-xs rounded-full shadow"
                 >
                   Simpan Perubahan Utama
+                </button>
+              </div>
+            </form>
+
+            <form onSubmit={handleChangePKPassword} className="bg-white border border-slate-200/50 rounded-2xl p-6 md:p-8 shadow space-y-5">
+              <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
+                <Lock className="w-5 h-5 text-blue-600" />
+                <h3 className="text-sm font-extrabold text-slate-800 uppercase">Ganti Password Login PK</h3>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-extrabold text-slate-500 uppercase">Password Lama</label>
+                  <input
+                    type="password"
+                    value={passwordForm.current}
+                    onChange={(e) => setPasswordForm({ ...passwordForm, current: e.target.value })}
+                    className="w-full text-xs p-2.5 border border-slate-200 bg-slate-50 rounded-lg text-slate-700 font-semibold"
+                    placeholder="Masukkan password lama"
+                    required
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-extrabold text-slate-500 uppercase">Password Baru</label>
+                  <input
+                    type="password"
+                    value={passwordForm.next}
+                    onChange={(e) => setPasswordForm({ ...passwordForm, next: e.target.value })}
+                    className="w-full text-xs p-2.5 border border-slate-200 bg-slate-50 rounded-lg text-slate-700 font-semibold"
+                    placeholder="Minimal 6 karakter"
+                    minLength={6}
+                    required
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-extrabold text-slate-500 uppercase">Konfirmasi Password Baru</label>
+                  <input
+                    type="password"
+                    value={passwordForm.confirm}
+                    onChange={(e) => setPasswordForm({ ...passwordForm, confirm: e.target.value })}
+                    className="w-full text-xs p-2.5 border border-slate-200 bg-slate-50 rounded-lg text-slate-700 font-semibold"
+                    placeholder="Ulangi password baru"
+                    minLength={6}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2">
+                <p className="text-[10px] text-slate-400 font-semibold leading-relaxed">
+                  Setelah disimpan, password baru langsung dipakai untuk login dan otomatis tampil di Dashboard DPD.
+                </p>
+                <button
+                  type="submit"
+                  disabled={passwordSaving}
+                  className="px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-full shadow disabled:opacity-50"
+                >
+                  {passwordSaving ? 'Menyimpan...' : 'Ganti Password'}
                 </button>
               </div>
             </form>

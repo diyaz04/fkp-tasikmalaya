@@ -27,6 +27,7 @@ import {
   AlertCircle,
   Home,
   LogOut,
+  Lock,
   Eye,
   LayoutGrid,
   List,
@@ -34,6 +35,7 @@ import {
 } from 'lucide-react';
 import { useAuthStore } from '@/src/store/authStore';
 import { dbService } from '@/src/lib/db';
+import { changeCurrentUserPassword, getPasswordChangeMessage } from '@/src/lib/authPassword';
 import ImageUploader from '@/src/components/ImageUploader';
 import { 
   ProfilOrganisasi, 
@@ -127,6 +129,12 @@ export default function DPDDashboard() {
 
   // Save/Edit success notifications
   const [successMsg, setSuccessMsg] = useState('');
+  const [adminPasswordForm, setAdminPasswordForm] = useState({
+    current: '',
+    next: '',
+    confirm: ''
+  });
+  const [adminPasswordSaving, setAdminPasswordSaving] = useState(false);
 
   useEffect(() => {
     // Auth Guard
@@ -312,7 +320,13 @@ export default function DPDDashboard() {
         is_active: newPK.is_active !== undefined ? newPK.is_active : true,
         pengurus: editingPK ? editingPK.pengurus : [],
         created_at: editingPK ? editingPK.created_at : new Date().toISOString(),
-        password: newPK.password || ''
+        password: newPK.password || '',
+        password_updated_at: editingPK && newPK.password !== editingPK.password
+          ? new Date().toISOString()
+          : editingPK?.password_updated_at,
+        password_updated_by: editingPK && newPK.password !== editingPK.password
+          ? user?.email || null
+          : editingPK?.password_updated_by || null
       };
       await dbService.savePK(payload);
       setEditingPK(null);
@@ -796,6 +810,34 @@ export default function DPDDashboard() {
     }
   };
 
+  const handleChangeAdminPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!adminPasswordForm.current || !adminPasswordForm.next || !adminPasswordForm.confirm) {
+      alert('Lengkapi password lama, password baru, dan konfirmasi password.');
+      return;
+    }
+    if (adminPasswordForm.next.length < 6) {
+      alert('Password baru minimal 6 karakter.');
+      return;
+    }
+    if (adminPasswordForm.next !== adminPasswordForm.confirm) {
+      alert('Konfirmasi password baru belum sama.');
+      return;
+    }
+
+    setAdminPasswordSaving(true);
+    try {
+      await changeCurrentUserPassword(adminPasswordForm.current, adminPasswordForm.next);
+      setAdminPasswordForm({ current: '', next: '', confirm: '' });
+      triggerSuccess('Password Admin DPD berhasil diganti!');
+    } catch (err: any) {
+      console.error(err);
+      alert(getPasswordChangeMessage(err));
+    } finally {
+      setAdminPasswordSaving(false);
+    }
+  };
+
   if (authLoading || dataLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[70vh] bg-slate-50 gap-3">
@@ -984,6 +1026,64 @@ export default function DPDDashboard() {
               </div>
 
             </div>
+
+            <form onSubmit={handleChangeAdminPassword} className="bg-white border border-slate-200/50 rounded-2xl shadow p-6 space-y-5">
+              <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
+                <Lock className="w-5 h-5 text-blue-600" />
+                <h3 className="text-sm font-extrabold text-slate-800 uppercase tracking-wider">Keamanan Akun Admin DPD</h3>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-extrabold text-slate-500 uppercase">Password Lama</label>
+                  <input
+                    type="password"
+                    value={adminPasswordForm.current}
+                    onChange={(e) => setAdminPasswordForm({ ...adminPasswordForm, current: e.target.value })}
+                    className="w-full text-xs p-2.5 border border-slate-200 bg-slate-50 rounded-lg text-slate-700 font-semibold"
+                    placeholder="Password admin saat ini"
+                    required
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-extrabold text-slate-500 uppercase">Password Baru</label>
+                  <input
+                    type="password"
+                    value={adminPasswordForm.next}
+                    onChange={(e) => setAdminPasswordForm({ ...adminPasswordForm, next: e.target.value })}
+                    className="w-full text-xs p-2.5 border border-slate-200 bg-slate-50 rounded-lg text-slate-700 font-semibold"
+                    placeholder="Minimal 6 karakter"
+                    minLength={6}
+                    required
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-extrabold text-slate-500 uppercase">Konfirmasi Password Baru</label>
+                  <input
+                    type="password"
+                    value={adminPasswordForm.confirm}
+                    onChange={(e) => setAdminPasswordForm({ ...adminPasswordForm, confirm: e.target.value })}
+                    className="w-full text-xs p-2.5 border border-slate-200 bg-slate-50 rounded-lg text-slate-700 font-semibold"
+                    placeholder="Ulangi password baru"
+                    minLength={6}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <p className="text-[10px] text-slate-400 font-semibold leading-relaxed">
+                  Password ini hanya mengubah akun admin DPD yang sedang login.
+                </p>
+                <button
+                  type="submit"
+                  disabled={adminPasswordSaving}
+                  className="px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-full shadow disabled:opacity-50"
+                >
+                  {adminPasswordSaving ? 'Menyimpan...' : 'Ganti Password Admin'}
+                </button>
+              </div>
+            </form>
 
             {/* Pending actions container */}
             <div className="bg-white border border-slate-200/50 rounded-2xl shadow p-6">
@@ -1909,6 +2009,11 @@ export default function DPDDashboard() {
                         <p className="text-[10px] text-slate-400 font-bold block mt-1">Ketua: {p.nama_ketua}</p>
                         <p className="text-[10px] text-slate-400 font-semibold block truncate mt-0.5">Email: {p.email || 'Belum diatur'}</p>
                         <p className="text-[10px] text-slate-450 font-semibold block truncate mt-0.5">Sandi: {p.password || 'sandi123'}</p>
+                        {p.password_updated_at && (
+                          <p className="text-[9px] text-blue-600 font-bold block mt-0.5">
+                            Diganti: {new Date(p.password_updated_at).toLocaleString('id-ID')}
+                          </p>
+                        )}
                       </div>
 
                       <div className="flex justify-end gap-1.5 border-t border-slate-200/50 pt-2 text-[10px] font-bold">
@@ -1951,7 +2056,14 @@ export default function DPDDashboard() {
                           <td className="py-3.5 px-4 font-bold text-slate-900 uppercase">Kec. {p.nama_kecamatan}</td>
                           <td className="py-3.5 px-4 text-slate-600">{p.nama_ketua || 'Belum diisi'}</td>
                           <td className="py-3.5 px-4 text-slate-500 font-mono text-[11px]">{p.email || '-'}</td>
-                          <td className="py-3.5 px-4 text-rose-600 font-mono text-[11px]">{p.password || 'sandi123'}</td>
+                          <td className="py-3.5 px-4">
+                            <span className="text-rose-600 font-mono text-[11px] block">{p.password || 'sandi123'}</span>
+                            {p.password_updated_at && (
+                              <span className="text-[9px] text-blue-600 font-bold block mt-0.5">
+                                Update: {new Date(p.password_updated_at).toLocaleString('id-ID')}
+                              </span>
+                            )}
+                          </td>
                           <td className="py-3.5 px-4 text-center">
                             <span className={`text-[9px] font-bold px-2 py-0.5 rounded ${
                               p.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
@@ -2055,6 +2167,9 @@ export default function DPDDashboard() {
                         className="w-full text-xs p-2.5 border border-slate-200 bg-slate-50 rounded-lg text-slate-700 font-semibold focus:bg-white"
                         required
                       />
+                      <p className="text-[9px] text-slate-400 font-semibold leading-relaxed">
+                        Untuk akun PK yang sudah pernah login, perubahan password paling aman dilakukan oleh PK dari dashboardnya agar Firebase Auth ikut berubah.
+                      </p>
                     </div>
  
                     <div className="space-y-1">

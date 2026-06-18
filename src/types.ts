@@ -56,6 +56,8 @@ export interface PKFKP {
   created_at: string;
   email: string | null; // For email mapping-based PK Auth login
   password?: string; // Preset password for on-the-fly Auth account creation
+  password_updated_at?: string;
+  password_updated_by?: string | null;
 }
 
 export interface Berita {

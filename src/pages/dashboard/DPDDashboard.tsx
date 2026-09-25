@@ -3088,7 +3088,11 @@ export default function DPDDashboard() {
 
             {(() => {
               const totalPK = pks.length;
-              const pkPernahAkses = pks.filter(pk => !!pk.last_login_at).length;
+              const pkPernahAkses = pks.filter(pk => {
+                const ketua = (pk.nama_ketua || '').toLowerCase().trim();
+                const isFilled = ketua !== '' && !ketua.includes('isi nama ketua') && !ketua.includes('belum diatur');
+                return !!pk.last_login_at || isFilled;
+              }).length;
               const pkBelumAkses = totalPK - pkPernahAkses;
               const persentaseBelumAkses = totalPK > 0 ? Math.round((pkBelumAkses / totalPK) * 100) : 0;
               const persentasePernahAkses = totalPK > 0 ? Math.round((pkPernahAkses / totalPK) * 100) : 0;
@@ -3148,13 +3152,13 @@ export default function DPDDashboard() {
                     ) : (
                       pks.map(pk => {
                         const totalUmkm = umkms.filter(u => u.pk_id === pk.id).length;
-                        const hasAccessed = !!pk.last_login_at;
+                        const ketuaLower = (pk.nama_ketua || '').toLowerCase().trim();
+                        const isPengurusFilled = ketuaLower !== '' && !ketuaLower.includes('isi nama ketua') && !ketuaLower.includes('belum diatur');
+
+                        const hasAccessed = !!pk.last_login_at || isPengurusFilled;
                         const lastLogin = pk.last_login_at 
                           ? new Date(pk.last_login_at).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })
-                          : '-';
-                        
-                        const ketuaLower = (pk.nama_ketua || '').toLowerCase().trim();
-                        const isPengurusFilled = ketuaLower && !ketuaLower.includes('isi dengan nama ketua') && !ketuaLower.includes('belum diatur');
+                          : (isPengurusFilled ? 'Terekam di sistem lama' : '-');
 
                         return (
                           <tr key={pk.id} className="hover:bg-slate-50 transition-colors">

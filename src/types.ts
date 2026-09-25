@@ -58,6 +58,7 @@ export interface PKFKP {
   password?: string; // Preset password for on-the-fly Auth account creation
   password_updated_at?: string;
   password_updated_by?: string | null;
+  last_login_at?: string;
 }
 
 export interface Berita {

@@ -49,7 +49,7 @@ import {
   PengurusPK
 } from '@/src/types';
 
-type TabType = 'overview' | 'profil' | 'hero' | 'berita' | 'pk' | 'agenda' | 'galeri' | 'umkm' | 'kontak';
+type TabType = 'overview' | 'profil' | 'hero' | 'berita' | 'pk' | 'agenda' | 'galeri' | 'umkm' | 'kontak' | 'rekap_pk';
 
 export default function DPDDashboard() {
   const navigate = useNavigate();
@@ -855,6 +855,7 @@ export default function DPDDashboard() {
     { type: 'hero', label: 'Banner Utama Layout', icon: Monitor },
     { type: 'berita', label: 'Liputan Kabar Berita', icon: FileText, badge: pendingBerita.length },
     { type: 'pk', label: 'Kelola PK Kecamatan', icon: Users },
+    { type: 'rekap_pk', label: 'Rekap Aktivitas PK', icon: Eye },
     { type: 'agenda', label: 'Kalender Agenda', icon: Calendar },
     { type: 'galeri', label: 'Galeri Kegiatan', icon: ImageIcon },
     { type: 'umkm', label: 'Direktori UMKM', icon: ShoppingBag },
@@ -3070,6 +3071,134 @@ export default function DPDDashboard() {
               </div>
             )}
 
+          </div>
+        )}
+
+        {/* ------------------------------------- */}
+        {/* SECTION: REKAP AKTIVITAS PK */}
+        {/* ------------------------------------- */}
+        {activeTab === 'rekap_pk' && (
+          <div className="space-y-6 animate-fade-in" id="dpd-rekap-pk-subsection">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-extrabold text-slate-800">Rekap Aktivitas Pengelolaan PK</h2>
+                <p className="text-xs text-slate-500 font-medium mt-1">Pantau keaktifan setiap Pengurus Kecamatan dalam mengakses sistem dan mengisi data UMKM.</p>
+              </div>
+            </div>
+
+            {(() => {
+              const totalPK = pks.length;
+              const pkPernahAkses = pks.filter(pk => !!pk.last_login_at).length;
+              const pkBelumAkses = totalPK - pkPernahAkses;
+              const persentaseBelumAkses = totalPK > 0 ? Math.round((pkBelumAkses / totalPK) * 100) : 0;
+              const persentasePernahAkses = totalPK > 0 ? Math.round((pkPernahAkses / totalPK) * 100) : 0;
+
+              return (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                    <div>
+                      <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Total PK Terdaftar</p>
+                      <p className="text-2xl font-black text-slate-800">{totalPK}</p>
+                    </div>
+                    <div className="p-3 bg-blue-50 text-blue-600 rounded-lg"><Users className="w-5 h-5" /></div>
+                  </div>
+                  <div className="bg-white p-4 rounded-xl border border-emerald-100 shadow-sm flex items-center justify-between">
+                    <div>
+                      <p className="text-[10px] text-emerald-600 font-bold uppercase tracking-wider">Pernah Akses Web</p>
+                      <div className="flex items-baseline gap-2">
+                        <p className="text-2xl font-black text-slate-800">{pkPernahAkses}</p>
+                        <span className="text-xs font-bold text-emerald-500">({persentasePernahAkses}%)</span>
+                      </div>
+                    </div>
+                    <div className="p-3 bg-emerald-50 text-emerald-600 rounded-lg"><Check className="w-5 h-5" /></div>
+                  </div>
+                  <div className="bg-white p-4 rounded-xl border border-rose-100 shadow-sm flex items-center justify-between">
+                    <div>
+                      <p className="text-[10px] text-rose-600 font-bold uppercase tracking-wider">Belum Pernah Akses</p>
+                      <div className="flex items-baseline gap-2">
+                        <p className="text-2xl font-black text-rose-700">{pkBelumAkses}</p>
+                        <span className="text-xs font-bold text-rose-500">({persentaseBelumAkses}%)</span>
+                      </div>
+                    </div>
+                    <div className="p-3 bg-rose-50 text-rose-600 rounded-lg"><AlertCircle className="w-5 h-5" /></div>
+                  </div>
+                </div>
+              );
+            })()}
+
+            <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                      <th className="p-4 pl-6">Kecamatan</th>
+                      <th className="p-4">Profil Pengurus</th>
+                      <th className="p-4">Status Akses</th>
+                      <th className="p-4">Akses Terakhir</th>
+                      <th className="p-4 text-center">Total UMKM Diisi</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 text-sm">
+                    {pks.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="p-8 text-center text-slate-400 font-medium">
+                          Belum ada data PK Kecamatan.
+                        </td>
+                      </tr>
+                    ) : (
+                      pks.map(pk => {
+                        const totalUmkm = umkms.filter(u => u.pk_id === pk.id).length;
+                        const hasAccessed = !!pk.last_login_at;
+                        const lastLogin = pk.last_login_at 
+                          ? new Date(pk.last_login_at).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })
+                          : '-';
+                        
+                        const ketuaLower = (pk.nama_ketua || '').toLowerCase().trim();
+                        const isPengurusFilled = ketuaLower && !ketuaLower.includes('isi dengan nama ketua') && !ketuaLower.includes('belum diatur');
+
+                        return (
+                          <tr key={pk.id} className="hover:bg-slate-50 transition-colors">
+                            <td className="p-4 pl-6 font-bold text-slate-800">
+                              PK {pk.nama_kecamatan}
+                            </td>
+                            <td className="p-4">
+                              {isPengurusFilled ? (
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-blue-100 text-blue-700">
+                                  <Check className="w-3 h-3" /> Sudah Diisi
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-orange-100 text-orange-700">
+                                  <AlertCircle className="w-3 h-3" /> Belum Diisi
+                                </span>
+                              )}
+                            </td>
+                            <td className="p-4">
+                              {hasAccessed ? (
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700">
+                                  <Check className="w-3 h-3" /> Pernah Akses
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-100 text-rose-700">
+                                  <AlertCircle className="w-3 h-3" /> Belum Pernah Akses
+                                </span>
+                              )}
+                            </td>
+                            <td className="p-4 text-slate-500 text-xs font-medium">
+                              {lastLogin}
+                            </td>
+                            <td className="p-4 text-center">
+                              <span className={`inline-block min-w-[2rem] px-2 py-1 rounded-lg text-xs font-bold ${totalUmkm > 0 ? 'bg-blue-50 text-blue-700' : 'bg-slate-100 text-slate-500'}`}>
+                                {totalUmkm}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         )}
 

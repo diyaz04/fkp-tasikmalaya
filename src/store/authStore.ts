@@ -208,6 +208,11 @@ async function mapFirebaseUserToAuthUser(firebaseUser: FirebaseUser): Promise<Au
     const pks = await dbService.getPKs();
     const foundPK = pks.find(p => p.email && p.email.toLowerCase() === email?.toLowerCase());
     if (foundPK) {
+      // Update last access time for Rekap Aktivitas
+      const updatedPK = { ...foundPK, last_login_at: new Date().toISOString() };
+      // Save asynchronously in the background so it doesn't block mapping
+      dbService.savePK(updatedPK).catch(err => console.error('Failed updating last_login_at', err));
+
       return {
         uid: firebaseUser.uid,
         email: firebaseUser.email,

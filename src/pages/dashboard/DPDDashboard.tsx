@@ -33,6 +33,8 @@ import {
   List,
   Search
 } from 'lucide-react';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { useAuthStore } from '@/src/store/authStore';
 import { dbService } from '@/src/lib/db';
 import { changeCurrentUserPassword, getPasswordChangeMessage } from '@/src/lib/authPassword';
@@ -793,6 +795,63 @@ export default function DPDDashboard() {
       let errMsg = err.message || String(err);
       try { const parsed = JSON.parse(err.message); if (parsed.error) errMsg = parsed.error; } catch {}
       alert(`Gagal menghapus UMKM: ${errMsg}`);
+    }
+  };
+
+  // ==========================================
+  // HANDLERS: REKAP PK
+  // ==========================================
+  const handleExportRekapPDF = () => {
+    try {
+      const doc = new jsPDF();
+      
+      // Header Text
+      doc.setFontSize(16);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Rekap Aktivitas Pengelolaan Website PK', 14, 22);
+      
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Dicetak pada: ${new Date().toLocaleString('id-ID')}`, 14, 28);
+      
+      const tableData = pks.map((pk, index) => {
+        const totalUmkm = umkms.filter(u => u.pk_id === pk.id).length;
+        const ketuaLower = (pk.nama_ketua || '').toLowerCase().trim();
+        const isPengurusFilled = ketuaLower !== '' && !ketuaLower.includes('isi nama ketua') && !ketuaLower.includes('belum diatur');
+        const hasAccessed = !!pk.last_login_at || isPengurusFilled;
+        
+        const lastLogin = pk.last_login_at 
+          ? new Date(pk.last_login_at).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })
+          : (isPengurusFilled ? 'Terekam di sistem lama' : '-');
+        
+        return [
+          index + 1,
+          pk.nama_kecamatan,
+          isPengurusFilled ? 'Sudah Diisi' : 'Belum Diisi',
+          hasAccessed ? 'Pernah Akses' : 'Belum Akses',
+          lastLogin,
+          totalUmkm
+        ];
+      });
+
+      autoTable(doc, {
+        startY: 35,
+        head: [['No', 'Kecamatan', 'Profil Pengurus', 'Status Akses', 'Akses Terakhir', 'Total UMKM Diisi']],
+        body: tableData,
+        theme: 'grid',
+        headStyles: { fillColor: [15, 23, 42], fontSize: 9 }, // Slate-900 color
+        bodyStyles: { fontSize: 8 },
+        columnStyles: {
+          0: { cellWidth: 10, halign: 'center' },
+          5: { cellWidth: 30, halign: 'center' },
+        },
+      });
+
+      doc.save('Rekap_Aktivitas_PK.pdf');
+      triggerSuccess('File PDF berhasil diunduh!');
+    } catch (error) {
+      console.error('Failed to export PDF:', error);
+      alert('Gagal mengekspor PDF. Pastikan data sudah siap.');
     }
   };
 
@@ -3084,6 +3143,12 @@ export default function DPDDashboard() {
                 <h2 className="text-xl font-extrabold text-slate-800">Rekap Aktivitas Pengelolaan PK</h2>
                 <p className="text-xs text-slate-500 font-medium mt-1">Pantau keaktifan setiap Pengurus Kecamatan dalam mengakses sistem dan mengisi data UMKM.</p>
               </div>
+              <button 
+                onClick={handleExportRekapPDF}
+                className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg text-sm font-bold shadow-sm hover:bg-slate-800 transition shrink-0"
+              >
+                <FileText className="w-4 h-4" /> Export PDF
+              </button>
             </div>
 
             {(() => {

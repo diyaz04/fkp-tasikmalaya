@@ -27,6 +27,7 @@ import {
   UMKM, 
   Kontak 
 } from '@/src/types';
+import { buildDummyUMKMs, isDummyUMKM, isDummyClearedMarker, DUMMY_CLEARED_PREFIX } from './dummyUmkm';
 
 // ==========================================
 // 1. ERROR HANDLERS (As required by skill)
@@ -300,6 +301,8 @@ const DEFAULT_UMKM: UMKM[] = [
     has_katalog: false
   }
 ];
+
+const DUMMY_CLEARED_KEY = 'fkp_umkm_dummy_cleared';
 
 const DEFAULT_KONTAK: Kontak = {
   id: "kontak_fkp_tasikmalaya",
@@ -619,22 +622,59 @@ export const dbService = {
   },
 
   // UMKM
-  async getUMKMs(): Promise<UMKM[]> {
+  async getUMKMs(opts: { includeDummy?: boolean } = {}): Promise<UMKM[]> {
+    let all: UMKM[];
     if (isFirebaseConfigured) {
       const path = 'umkm';
       try {
         const snap = await getDocs(collection(db, path));
-        const res: UMKM[] = [];
-        snap.forEach(d => res.push(d.data() as UMKM));
-        return res.length > 0 ? res : DEFAULT_UMKM;
+        all = [];
+        snap.forEach(d => all.push(d.data() as UMKM));
+        if (all.length === 0) all = DEFAULT_UMKM;
       } catch (error) {
         handleFirestoreError(error, OperationType.LIST, path);
       }
+    } else {
+      all = getLocal<UMKM[]>('fkp_umkm', DEFAULT_UMKM);
     }
-    return getLocal<UMKM[]>('fkp_umkm', DEFAULT_UMKM);
+
+    const real = all.filter(u => !isDummyUMKM(u) && !isDummyClearedMarker(u));
+    if (!opts.includeDummy) return real;
+
+    // Kecamatan yang sudah punya UMKM real (disetujui) tidak lagi menampilkan dummy.
+    const cleared = new Set<string>(getLocal<string[]>(DUMMY_CLEARED_KEY, []));
+    all.filter(isDummyClearedMarker).forEach(m => cleared.add(m.pk_id));
+    real.filter(u => u.status === 'approved').forEach(u => cleared.add(u.pk_id));
+
+    const pks = await dbService.getPKs();
+    const dummies = pks
+      .filter(p => p.is_active && !cleared.has(p.id))
+      .flatMap(p => buildDummyUMKMs(p));
+    return [...real, ...dummies];
+  },
+
+  async markDummyCleared(pkId: string): Promise<void> {
+    const cleared = getLocal<string[]>(DUMMY_CLEARED_KEY, []);
+    if (!cleared.includes(pkId)) setLocal(DUMMY_CLEARED_KEY, [...cleared, pkId]);
+    if (isFirebaseConfigured) {
+      try {
+        const id = DUMMY_CLEARED_PREFIX + pkId;
+        await setDoc(doc(db, 'umkm', id), {
+          id, pk_id: pkId, nama_usaha: '', nama_pemilik: '', kategori: 'lainnya', deskripsi: '',
+          produk_jasa: [], foto_url: '', no_whatsapp: '', kecamatan: '', is_active: false,
+          created_at: new Date().toISOString(), status: 'rejected', has_katalog: false, is_dummy: true
+        });
+      } catch (error) {
+        console.error('Gagal menyimpan penanda dummy UMKM', error);
+      }
+    }
   },
 
   async saveUMKM(data: UMKM): Promise<UMKM> {
+    // UMKM real yang disetujui menggantikan dummy di kecamatannya secara permanen.
+    if (data.status === 'approved' && data.pk_id && !isDummyUMKM(data)) {
+      await dbService.markDummyCleared(data.pk_id);
+    }
     if (isFirebaseConfigured) {
       const path = `umkm/${data.id}`;
       try {

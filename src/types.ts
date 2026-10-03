@@ -126,6 +126,7 @@ export interface UMKM {
   katalog?: ProdukKatalog[];
   shu_url?: string;
   nib_url?: string;
+  is_dummy?: boolean; // Data contoh; otomatis disembunyikan saat kecamatan punya UMKM real
 }
 
 export interface Kontak {

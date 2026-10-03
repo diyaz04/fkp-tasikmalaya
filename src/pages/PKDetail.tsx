@@ -34,7 +34,7 @@ export default function PKDetail() {
       try {
         const [pkData, umkmList] = await Promise.all([
           dbService.getPK(id),
-          dbService.getUMKMs()
+          dbService.getUMKMs({ includeDummy: true })
         ]);
         setPk(pkData);
         setUmkms(umkmList.filter(u => u.pk_id === id && u.is_active));

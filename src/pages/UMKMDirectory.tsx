@@ -54,7 +54,7 @@ export default function UMKMDirectory() {
     async function loadData() {
       try {
         const [umkmData, pkData] = await Promise.all([
-          dbService.getUMKMs(),
+          dbService.getUMKMs({ includeDummy: true }),
           dbService.getPKs()
         ]);
         setUmkms(umkmData.filter(u => u.is_active));
